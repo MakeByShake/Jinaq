@@ -188,6 +188,19 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
   permanentDeleteUser: async (id) => {
     await deleteDoc(doc(db, 'deletedUsers', id));
+    // Also delete from Firebase Auth via API route (best-effort — skip if it fails)
+    try {
+      const idToken = await auth.currentUser?.getIdToken();
+      if (idToken) {
+        await fetch('/api/admin/delete-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uid: id, idToken }),
+        });
+      }
+    } catch {
+      // Firebase Admin not configured — Auth account remains but user can't log in
+    }
     set((s) => ({ deletedUsers: s.deletedUsers.filter((u) => u.id !== id) }));
   },
 
