@@ -6,7 +6,7 @@ import {
   Home, ShoppingBag, Calculator, TrendingUp, CreditCard, Clock,
   User, Shield, LogOut, Wallet, Menu, X,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatMoneyCompact } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useWalletStore } from '@/stores/wallet-store';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -78,7 +78,7 @@ export function MobileNavDrawer() {
         <div className="mx-4 mt-3 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
           <p className="text-xs text-muted-foreground mb-0.5">Текущий баланс</p>
           <p className="text-xl font-bold text-emerald-400">
-            {currentMoney.toLocaleString('ru-RU')} {currentUser?.currency ?? '₸'}
+            {formatMoneyCompact(currentMoney)} {currentUser?.currency ?? '₸'}
           </p>
         </div>
 

@@ -8,6 +8,7 @@ import { MobileNavDrawer } from '@/components/layout/mobile-nav-drawer';
 import { useAuthStore } from '@/stores/auth-store';
 import { useWalletStore } from '@/stores/wallet-store';
 import { usePwa } from '@/hooks/use-pwa';
+import { formatMoneyCompact } from '@/lib/utils';
 import { toast } from 'sonner';
 
 const PAGE_TITLES: Record<string, string> = {
@@ -48,8 +49,8 @@ export function MobileHeader() {
           <span className="font-semibold text-sm">{title}</span>
         </div>
         <div className="flex items-center gap-1">
-          <div className="text-sm font-semibold text-emerald-400 mr-2">
-            {currentMoney.toLocaleString('ru-RU')} {currentUser?.currency ?? '₸'}
+          <div className="text-sm font-semibold text-emerald-400 mr-2 tabular-nums">
+            {formatMoneyCompact(currentMoney)} {currentUser?.currency ?? '₸'}
           </div>
           {!isInstalled && (installPrompt || isIos) && (
             <button

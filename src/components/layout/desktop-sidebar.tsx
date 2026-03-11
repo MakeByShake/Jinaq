@@ -6,7 +6,7 @@ import {
   Home, ShoppingBag, Calculator, TrendingUp, CreditCard, Clock,
   User, Shield, LogOut, Wallet, ChevronRight, Download,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatMoneyCompact } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useWalletStore } from '@/stores/wallet-store';
 import { usePwa } from '@/hooks/use-pwa';
@@ -63,8 +63,8 @@ export function DesktopSidebar() {
       {/* Wallet chip */}
       <div className="mx-4 mt-4 px-4 py-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
         <p className="text-xs text-muted-foreground mb-1">Текущий баланс</p>
-        <p className="text-xl font-bold text-emerald-400">
-          {currentMoney.toLocaleString('ru-RU')} {currentUser?.currency ?? '₸'}
+        <p className="text-xl font-bold text-emerald-400 tabular-nums">
+          {formatMoneyCompact(currentMoney)} {currentUser?.currency ?? '₸'}
         </p>
       </div>
 
