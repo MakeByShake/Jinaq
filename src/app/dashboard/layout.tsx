@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/auth-store';
 import { DesktopSidebar } from '@/components/layout/desktop-sidebar';
 import { BottomNav } from '@/components/layout/bottom-nav';
@@ -12,6 +12,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const currentUser = useAuthStore((s) => s.currentUser);
   const isLoading = useAuthStore((s) => s.isLoading);
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isLoading && !currentUser) {
@@ -40,10 +41,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* Main content */}
       <main className="md:ml-64 pt-14 pb-20 md:pt-0 md:pb-0 min-h-screen">
-        {/* Desktop theme toggle absolute top-right */}
-        <div className="hidden md:flex fixed top-4 right-18 z-30">
-          <ThemeToggle />
-        </div>
+        {/* Desktop theme toggle — only on main page */}
+        {pathname === '/dashboard' && (
+          <div className="hidden md:flex fixed top-4 right-18 z-30">
+            <ThemeToggle />
+          </div>
+        )}
         {children}
       </main>
 
