@@ -464,44 +464,67 @@ export default function AdminPage() {
                   return (
                     <Card key={user.id} className="border-amber-500/20 bg-amber-500/5">
                       <CardContent className="p-4">
-                        <div className="flex items-center gap-3">
+                        {/* Info row */}
+                        <div className="flex items-center gap-3 mb-3">
                           <Avatar className="h-10 w-10 flex-shrink-0">
                             <AvatarImage src={user.avatar} alt={user.name} />
                             <AvatarFallback className="bg-amber-500/20 text-amber-400 text-sm font-bold">{initials}</AvatarFallback>
                           </Avatar>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm">{user.name}</p>
-                            <p className="text-xs text-muted-foreground">{user.email}</p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">
-                              {new Date(user.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm truncate">{user.name}</p>
+                            <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                            <p className="text-[11px] text-muted-foreground">
+                              {new Date(user.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              {' '}
+                              {new Date(user.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                             </p>
                           </div>
-                          <div className="flex gap-2 flex-shrink-0">
-                            <Button
-                              size="sm"
-                              className="gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white"
-                              onClick={async () => { await approveUser(user.id); toast.success(`${user.name} одобрен`); }}
-                            >
-                              <CheckCircle className="h-3.5 w-3.5" /> Одобрить
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="sm" variant="outline" className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10">
-                                  <X className="h-3.5 w-3.5" /> Отклонить
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Отклонить заявку?</AlertDialogTitle>
-                                  <AlertDialogDescription>{user.name} не сможет войти в систему.</AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Отмена</AlertDialogCancel>
-                                  <AlertDialogAction onClick={async () => { await rejectUser(user.id); toast.success(`Заявка ${user.name} отклонена`); }} className="bg-destructive text-white">Отклонить</AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
+                        </div>
+                        {/* Action buttons row — full width */}
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            className="flex-1 gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white"
+                            onClick={async () => {
+                              try {
+                                await approveUser(user.id);
+                                toast.success(`${user.name} одобрен`);
+                              } catch {
+                                toast.error('Ошибка. Обновите правила Firestore.');
+                              }
+                            }}
+                          >
+                            <CheckCircle className="h-3.5 w-3.5" /> Одобрить
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button size="sm" variant="outline" className="flex-1 gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10">
+                                <X className="h-3.5 w-3.5" /> Отклонить
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Отклонить заявку?</AlertDialogTitle>
+                                <AlertDialogDescription>{user.name} не сможет войти в систему.</AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={async () => {
+                                    try {
+                                      await rejectUser(user.id);
+                                      toast.success(`Заявка ${user.name} отклонена`);
+                                    } catch {
+                                      toast.error('Ошибка. Обновите правила Firestore.');
+                                    }
+                                  }}
+                                  className="bg-destructive text-white"
+                                >
+                                  Отклонить
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </CardContent>
                     </Card>

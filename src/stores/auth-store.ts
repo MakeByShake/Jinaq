@@ -200,7 +200,12 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   },
 
   approveUser: async (id) => {
-    await updateDoc(doc(db, 'users', id), { status: 'approved' });
+    try {
+      await updateDoc(doc(db, 'users', id), { status: 'approved' });
+    } catch (err: any) {
+      console.error('[approveUser] Firestore error:', err?.code, err?.message);
+      throw err;
+    }
     const user = get().pendingUsers.find((u) => u.id === id);
     if (!user) return;
     const approved = { ...user, status: 'approved' as const };
@@ -211,7 +216,12 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
   },
 
   rejectUser: async (id) => {
-    await updateDoc(doc(db, 'users', id), { status: 'rejected' });
+    try {
+      await updateDoc(doc(db, 'users', id), { status: 'rejected' });
+    } catch (err: any) {
+      console.error('[rejectUser] Firestore error:', err?.code, err?.message);
+      throw err;
+    }
     set((s) => ({ pendingUsers: s.pendingUsers.filter((u) => u.id !== id) }));
   },
 
