@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { LogOut, Wallet, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/theme-toggle';
+import { MobileNavDrawer } from '@/components/layout/mobile-nav-drawer';
 import { useAuthStore } from '@/stores/auth-store';
 import { useWalletStore } from '@/stores/wallet-store';
 import { usePwa } from '@/hooks/use-pwa';
@@ -40,6 +41,7 @@ export function MobileHeader() {
     <header className="md:hidden fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-xl border-b border-border safe-top">
       <div className="flex items-center justify-between px-4 h-14">
         <div className="flex items-center gap-2">
+          <MobileNavDrawer />
           <div className="flex items-center justify-center h-7 w-7 rounded-lg bg-emerald-500">
             <Wallet className="h-4 w-4 text-white" />
           </div>
@@ -72,7 +74,7 @@ export function MobileHeader() {
               <span className="text-[11px] font-semibold leading-none">Скачать</span>
             </button>
           )}
-          <ThemeToggle />
+          {pathname === '/dashboard' && <ThemeToggle />}
           <Button
             variant="ghost"
             size="icon"

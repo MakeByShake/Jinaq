@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { Plus, Trash2, Shield, Users, Crown, Pencil, Eye, EyeOff, RotateCcw, X, CalendarIcon } from 'lucide-react';
+import { Plus, Trash2, Shield, Users, Crown, Pencil, Eye, EyeOff, RotateCcw, X, CalendarIcon, Clock, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -61,7 +61,7 @@ function UserAvatar({ user }: { user: AppUser }) {
 }
 
 export default function AdminPage() {
-  const { users, deletedUsers, currentUser, addUser, deleteUser, restoreUser, permanentDeleteUser, updateUser, loadAllUsers } = useAuthStore();
+  const { users, deletedUsers, pendingUsers, currentUser, addUser, deleteUser, restoreUser, permanentDeleteUser, updateUser, loadAllUsers, approveUser, rejectUser } = useAuthStore();
 
   useEffect(() => { loadAllUsers(); }, []);
 
@@ -262,7 +262,7 @@ export default function AdminPage() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <Card>
             <CardContent className="p-4 text-center">
               <Users className="h-6 w-6 mx-auto mb-1 text-emerald-400" />
@@ -284,6 +284,15 @@ export default function AdminPage() {
               <p className="text-[10px] text-muted-foreground leading-tight">Юзеров</p>
             </CardContent>
           </Card>
+          {pendingUsers.length > 0 && (
+            <Card className="border-amber-500/30 bg-amber-500/5">
+              <CardContent className="p-4 text-center">
+                <Clock className="h-6 w-6 mx-auto mb-1 text-amber-400" />
+                <p className="text-2xl font-bold text-amber-400">{pendingUsers.length}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Заявок</p>
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         <Tabs defaultValue="users">
@@ -293,6 +302,12 @@ export default function AdminPage() {
               Корзина
               {deletedUsers.length > 0 && (
                 <Badge variant="destructive" className="h-4 px-1 text-[10px]">{deletedUsers.length}</Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="pending" className="gap-1.5">
+              Заявки
+              {pendingUsers.length > 0 && (
+                <Badge variant="destructive" className="h-4 px-1 text-[10px]">{pendingUsers.length}</Badge>
               )}
             </TabsTrigger>
           </TabsList>
@@ -423,6 +438,66 @@ export default function AdminPage() {
                                 <AlertDialogFooter>
                                   <AlertDialogCancel>Отмена</AlertDialogCancel>
                                   <AlertDialogAction onClick={() => { permanentDeleteUser(user.id); toast.success(`${user.name} удалён навсегда`); }} className="bg-destructive text-white">Удалить</AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="pending">
+            {pendingUsers.length === 0 ? (
+              <div className="text-center py-16 text-muted-foreground">
+                <Clock className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                <p>Нет ожидающих заявок</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {pendingUsers.map((user) => {
+                  const initials = user.name.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase();
+                  return (
+                    <Card key={user.id} className="border-amber-500/20 bg-amber-500/5">
+                      <CardContent className="p-4">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10 flex-shrink-0">
+                            <AvatarImage src={user.avatar} alt={user.name} />
+                            <AvatarFallback className="bg-amber-500/20 text-amber-400 text-sm font-bold">{initials}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm">{user.name}</p>
+                            <p className="text-xs text-muted-foreground">{user.email}</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">
+                              {new Date(user.createdAt).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
+                            <Button
+                              size="sm"
+                              className="gap-1.5 bg-emerald-500 hover:bg-emerald-600 text-white"
+                              onClick={async () => { await approveUser(user.id); toast.success(`${user.name} одобрен`); }}
+                            >
+                              <CheckCircle className="h-3.5 w-3.5" /> Одобрить
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" variant="outline" className="gap-1.5 text-destructive border-destructive/30 hover:bg-destructive/10">
+                                  <X className="h-3.5 w-3.5" /> Отклонить
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Отклонить заявку?</AlertDialogTitle>
+                                  <AlertDialogDescription>{user.name} не сможет войти в систему.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Отмена</AlertDialogCancel>
+                                  <AlertDialogAction onClick={async () => { await rejectUser(user.id); toast.success(`Заявка ${user.name} отклонена`); }} className="bg-destructive text-white">Отклонить</AlertDialogAction>
                                 </AlertDialogFooter>
                               </AlertDialogContent>
                             </AlertDialog>

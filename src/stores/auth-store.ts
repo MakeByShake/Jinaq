@@ -5,6 +5,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
 import {
   doc, setDoc, getDoc, collection, getDocs, deleteDoc, updateDoc, deleteField,
@@ -16,6 +17,7 @@ interface AuthStore {
   currentUser: AppUser | null;
   users: AppUser[];
   deletedUsers: AppUser[];
+  pendingUsers: AppUser[];
   isLoading: boolean; // true while Firebase checks auth state on startup
 
   // Internal — called by use-firebase-data hook
@@ -25,7 +27,7 @@ interface AuthStore {
   // Auth
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (name: string, email: string, password: string) => Promise<{ success: boolean; pending?: boolean; error?: string }>;
 
   // Profile
   updateCurrentUser: (updates: Partial<AppUser>) => Promise<void>;
@@ -37,12 +39,16 @@ interface AuthStore {
   permanentDeleteUser: (id: string) => void;
   updateUser: (id: string, updates: Partial<AppUser>) => Promise<void>;
   addUser: (data: Omit<AppUser, 'id' | 'createdAt'>) => Promise<void>;
+  approveUser: (id: string) => Promise<void>;
+  rejectUser: (id: string) => Promise<void>;
+  sendPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 export const useAuthStore = create<AuthStore>()((set, get) => ({
   currentUser: null,
   users: [],
   deletedUsers: [],
+  pendingUsers: [],
   isLoading: true,
 
   setCurrentUser: (user) => set({ currentUser: user, isLoading: false }),
@@ -62,6 +68,14 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         await signOut(auth);
         return { success: false, error: 'Аккаунт заблокирован.' };
       }
+      if ((userData as any).status === 'pending') {
+        await signOut(auth);
+        return { success: false, error: 'Ваш аккаунт ожидает одобрения администратора.' };
+      }
+      if ((userData as any).status === 'rejected') {
+        await signOut(auth);
+        return { success: false, error: 'Ваш аккаунт отклонён администратором.' };
+      }
       set({ currentUser: userData });
       return { success: true };
     } catch (err: any) {
@@ -75,7 +89,7 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
   logout: async () => {
     await signOut(auth);
-    set({ currentUser: null, users: [], deletedUsers: [] });
+    set({ currentUser: null, users: [], deletedUsers: [], pendingUsers: [] });
   },
 
   register: async (name, email, password) => {
@@ -92,10 +106,10 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
         currency: '₸',
         theme: 'dark',
         createdAt: new Date().toISOString(),
+        status: 'pending',
       };
       await setDoc(doc(db, 'users', uid), newUser);
-      set({ currentUser: newUser });
-      return { success: true };
+      return { success: true, pending: true };
     } catch (err: any) {
       if (err?.code === 'auth/email-already-in-use') {
         return { success: false, error: 'Email уже используется' };
@@ -130,18 +144,18 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       getDocs(collection(db, 'users')),
       getDocs(collection(db, 'deletedUsers')),
     ]);
-    const active = activeSnap.docs
-      .map((d) => d.data() as AppUser)
-      .filter((u) => !(u as any).deleted);
+    const active = activeSnap.docs.map((d) => d.data() as AppUser).filter((u) => !(u as any).deleted);
+    const approved = active.filter((u) => !u.status || u.status === 'approved');
+    const pending = active.filter((u) => u.status === 'pending');
     const deleted = deletedSnap.docs.map((d) => d.data() as AppUser);
-    set({ users: active, deletedUsers: deleted });
+    set({ users: approved, pendingUsers: pending, deletedUsers: deleted });
   },
 
   addUser: async (userData) => {
     // Creates Firestore profile only — the user still needs to register via /register
     // to get a Firebase Auth account with this email.
     const id = `pending-${Date.now()}`;
-    const newUser: AppUser = { ...userData, id, createdAt: new Date().toISOString() };
+    const newUser: AppUser = { ...userData, id, createdAt: new Date().toISOString(), status: 'approved' as const };
     await setDoc(doc(db, 'users', id), newUser);
     set((s) => ({ users: [...s.users, newUser] }));
   },
@@ -180,5 +194,30 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
       users: s.users.map((u) => (u.id === id ? { ...u, ...updates } : u)),
       currentUser: s.currentUser?.id === id ? { ...s.currentUser, ...updates } : s.currentUser,
     }));
+  },
+
+  approveUser: async (id) => {
+    await updateDoc(doc(db, 'users', id), { status: 'approved' });
+    const user = get().pendingUsers.find((u) => u.id === id);
+    if (!user) return;
+    const approved = { ...user, status: 'approved' as const };
+    set((s) => ({
+      pendingUsers: s.pendingUsers.filter((u) => u.id !== id),
+      users: [...s.users, approved],
+    }));
+  },
+
+  rejectUser: async (id) => {
+    await updateDoc(doc(db, 'users', id), { status: 'rejected' });
+    set((s) => ({ pendingUsers: s.pendingUsers.filter((u) => u.id !== id) }));
+  },
+
+  sendPasswordReset: async (email) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: 'Не удалось отправить письмо. Проверьте email.' };
+    }
   },
 }));

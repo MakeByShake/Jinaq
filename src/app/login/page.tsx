@@ -16,7 +16,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [resetMode, setResetMode] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const login = useAuthStore((s) => s.login);
+  const sendPasswordReset = useAuthStore((s) => s.sendPasswordReset);
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,6 +34,20 @@ export default function LoginPage() {
     if (result.success) {
       toast.success('Добро пожаловать!');
       router.push('/dashboard');
+    } else {
+      toast.error(result.error);
+    }
+  };
+
+  const handleReset = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) { toast.error('Введите email'); return; }
+    setResetLoading(true);
+    const result = await sendPasswordReset(email);
+    setResetLoading(false);
+    if (result.success) {
+      toast.success('Письмо для сброса пароля отправлено на ' + email);
+      setResetMode(false);
     } else {
       toast.error(result.error);
     }
@@ -103,6 +120,9 @@ export default function LoginPage() {
               >
                 {loading ? 'Вход...' : 'Войти'}
               </Button>
+              <button type="button" onClick={() => setResetMode(true)} className="text-xs text-muted-foreground hover:text-emerald-400 transition-colors">
+                Забыли пароль?
+              </button>
               <p className="text-sm text-muted-foreground text-center">
                 Нет аккаунта?{' '}
                 <Link href="/register" className="text-emerald-500 hover:text-emerald-400 font-medium">
@@ -113,6 +133,35 @@ export default function LoginPage() {
           </form>
         </Card>
       </div>
+
+      {/* Reset password dialog */}
+      {resetMode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-sm border-border bg-card shadow-2xl">
+            <CardHeader>
+              <CardTitle className="text-lg">Сброс пароля</CardTitle>
+              <CardDescription>Введите ваш email — мы отправим ссылку для сброса пароля.</CardDescription>
+            </CardHeader>
+            <form onSubmit={handleReset}>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label htmlFor="reset-email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input id="reset-email" type="email" placeholder="admin@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="pl-9" />
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex gap-3">
+                <Button type="button" variant="outline" className="flex-1" onClick={() => setResetMode(false)}>Отмена</Button>
+                <Button type="submit" className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white" disabled={resetLoading}>
+                  {resetLoading ? 'Отправка...' : 'Отправить'}
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

@@ -11,6 +11,7 @@ export interface AppUser {
   currency: string;
   theme: 'dark' | 'light' | 'system';
   createdAt: string;
+  status?: 'pending' | 'approved' | 'rejected';
   // Social & contact info
   telegram?: string;
   whatsapp?: string;

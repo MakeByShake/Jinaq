@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Eye, EyeOff, Lock, Mail, User, Wallet } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User, Wallet, Clock, CheckCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const register = useAuthStore((s) => s.register);
   const router = useRouter();
 
@@ -35,11 +36,44 @@ export default function RegisterPage() {
     setLoading(false);
     if (result.success) {
       toast.success('Аккаунт создан!');
-      router.push('/dashboard');
+      setSubmitted(true);
     } else {
       toast.error(result.error);
     }
   };
+
+  if (submitted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <div className="fixed inset-0 bg-gradient-to-br from-emerald-950/40 via-background to-background pointer-events-none" />
+        <div className="relative w-full max-w-md text-center">
+          <div className="flex flex-col items-center mb-8">
+            <div className="flex items-center justify-center h-20 w-20 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 shadow-lg mb-4">
+              <Clock className="h-10 w-10 text-emerald-400" />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">Заявка отправлена!</h1>
+            <p className="text-muted-foreground text-sm leading-relaxed">
+              Ваши данные отправлены администратору. Пожалуйста, подождите — после одобрения вы сможете войти в систему.
+            </p>
+          </div>
+          <Card className="border-border bg-card shadow-2xl">
+            <CardContent className="p-6">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-3 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                  <CheckCircle className="h-5 w-5 text-emerald-400 flex-shrink-0" />
+                  <p className="text-sm text-left">Аккаунт создан и ожидает проверки</p>
+                </div>
+                <p className="text-xs text-muted-foreground">После одобрения администратором вы получите доступ к системе.</p>
+                <Button variant="outline" className="w-full mt-2" onClick={() => router.push('/login')}>
+                  Перейти к входу
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
