@@ -14,7 +14,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard': 'Мои цели',
   '/dashboard/wishlist': 'Вишлист',
   '/dashboard/calculations': 'Расчёты',
-  '/dashboard/income': 'Доходы / Расходы',
+  '/dashboard/income': 'Доходы',
   '/dashboard/debts': 'Долги',
   '/dashboard/history': 'История',
   '/dashboard/profile': 'Профиль',
