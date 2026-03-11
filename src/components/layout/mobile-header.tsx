@@ -71,7 +71,6 @@ export function MobileHeader() {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
               </span>
               <Download className="h-3 w-3" />
-              <span className="text-[11px] font-semibold leading-none">Скачать</span>
             </button>
           )}
           {pathname === '/dashboard' && <ThemeToggle />}
