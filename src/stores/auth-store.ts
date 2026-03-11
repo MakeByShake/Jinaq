@@ -34,9 +34,9 @@ interface AuthStore {
 
   // Admin
   loadAllUsers: () => Promise<void>;
-  deleteUser: (id: string) => void;
-  restoreUser: (id: string) => void;
-  permanentDeleteUser: (id: string) => void;
+  deleteUser: (id: string) => Promise<void>;
+  restoreUser: (id: string) => Promise<void>;
+  permanentDeleteUser: (id: string) => Promise<void>;
   updateUser: (id: string, updates: Partial<AppUser>) => Promise<void>;
   addUser: (data: Omit<AppUser, 'id' | 'createdAt'>) => Promise<void>;
   approveUser: (id: string) => Promise<void>;
@@ -160,31 +160,34 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     set((s) => ({ users: [...s.users, newUser] }));
   },
 
-  deleteUser: (id) => {
+  deleteUser: async (id) => {
     const user = get().users.find((u) => u.id === id);
     if (!user) return;
-    // Move to deletedUsers collection
-    setDoc(doc(db, 'deletedUsers', id), { ...user, deletedAt: new Date().toISOString() });
-    deleteDoc(doc(db, 'users', id));
+    await Promise.all([
+      setDoc(doc(db, 'deletedUsers', id), { ...user, deletedAt: new Date().toISOString() }),
+      deleteDoc(doc(db, 'users', id)),
+    ]);
     set((s) => ({
       users: s.users.filter((u) => u.id !== id),
       deletedUsers: [...s.deletedUsers, user],
     }));
   },
 
-  restoreUser: (id) => {
+  restoreUser: async (id) => {
     const user = get().deletedUsers.find((u) => u.id === id);
     if (!user) return;
-    setDoc(doc(db, 'users', id), user);
-    deleteDoc(doc(db, 'deletedUsers', id));
+    await Promise.all([
+      setDoc(doc(db, 'users', id), user),
+      deleteDoc(doc(db, 'deletedUsers', id)),
+    ]);
     set((s) => ({
       deletedUsers: s.deletedUsers.filter((u) => u.id !== id),
       users: [...s.users, user],
     }));
   },
 
-  permanentDeleteUser: (id) => {
-    deleteDoc(doc(db, 'deletedUsers', id));
+  permanentDeleteUser: async (id) => {
+    await deleteDoc(doc(db, 'deletedUsers', id));
     set((s) => ({ deletedUsers: s.deletedUsers.filter((u) => u.id !== id) }));
   },
 
