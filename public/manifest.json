@@ -1,24 +1,40 @@
 {
-  "name": "PFA — Personal Finance Application",
-  "short_name": "PFA",
-  "description": "Персональное финансовое приложение",
+  "name": "Jinaq — личные финансы",
+  "short_name": "Jinaq",
+  "description": "Учёт расходов и доходов, бюджеты, цели и долги",
+  "id": "/dashboard",
   "start_url": "/dashboard",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#0a0a0f",
-  "theme_color": "#10b981",
+  "background_color": "#0c1512",
+  "theme_color": "#0c1512",
   "orientation": "portrait",
+  "lang": "ru",
+  "categories": ["finance", "productivity"],
   "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
     {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "name": "Добавить расход",
+      "short_name": "+ Расход",
+      "url": "/dashboard?add=expense",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "name": "Добавить доход",
+      "short_name": "+ Доход",
+      "url": "/dashboard?add=income",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Аналитика",
+      "short_name": "Аналитика",
+      "url": "/dashboard/analytics",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
     }
   ]
 }

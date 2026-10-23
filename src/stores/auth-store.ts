@@ -2,53 +2,57 @@
 
 import { create } from 'zustand';
 import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  signOut,
-  sendPasswordResetEmail,
+  createUserWithEmailAndPassword, GoogleAuthProvider, sendPasswordResetEmail, signInWithEmailAndPassword,
+  signInWithPopup, signOut, updateProfile as updateAuthProfile, deleteUser as deleteAuthUser,
 } from 'firebase/auth';
-import {
-  doc, setDoc, getDoc, collection, getDocs, deleteDoc, updateDoc, deleteField,
-} from 'firebase/firestore';
+import { deleteDoc, deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
-import { AppUser, UserRole } from '@/lib/types';
+import type { AppUser, Locale } from '@/lib/types';
+
+type AuthResult = { success: true } | { success: false, error: AuthErrorKey };
+
+/** Translation keys in the `auth` namespace. */
+export type AuthErrorKey =
+  | 'errInvalid' | 'errExists' | 'errWeak' | 'errEmail' | 'errBlocked' | 'errTooMany' | 'errPopup'
+  | 'errGoogleDisabled' | 'errRecentLogin' | 'errGeneric';
+
+function mapError(err: unknown): AuthErrorKey {
+  const code = (err as { code?: string })?.code ?? '';
+  if (/invalid-credential|wrong-password|user-not-found|invalid-login/.test(code)) return 'errInvalid';
+  if (code.includes('email-already-in-use')) return 'errExists';
+  if (code.includes('weak-password')) return 'errWeak';
+  if (code.includes('invalid-email')) return 'errEmail';
+  if (code.includes('too-many-requests')) return 'errTooMany';
+  if (code.includes('popup-closed') || code.includes('cancelled-popup')) return 'errPopup';
+  if (code.includes('operation-not-allowed')) return 'errGoogleDisabled';
+  if (code.includes('requires-recent-login')) return 'errRecentLogin';
+  return 'errGeneric';
+}
+
+export function newProfile(id: string, name: string, email: string, locale: Locale): AppUser {
+  return {
+    id, name: name || email.split('@')[0], email, role: 'user', currency: 'KZT', locale,
+    createdAt: new Date().toISOString(), onboarded: false,
+  };
+}
 
 interface AuthStore {
   currentUser: AppUser | null;
-  users: AppUser[];
-  deletedUsers: AppUser[];
-  pendingUsers: AppUser[];
-  isLoading: boolean; // true while Firebase checks auth state on startup
-
-  // Internal — called by use-firebase-data hook
+  isLoading: boolean;
   setCurrentUser: (user: AppUser | null) => void;
   setIsLoading: (v: boolean) => void;
 
-  // Auth
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<AuthResult>;
+  loginWithGoogle: (locale: Locale) => Promise<AuthResult>;
+  register: (name: string, email: string, password: string, locale: Locale) => Promise<AuthResult>;
   logout: () => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<{ success: boolean; pending?: boolean; error?: string }>;
-
-  // Profile
-  updateCurrentUser: (updates: Partial<AppUser>) => Promise<void>;
-
-  // Admin
-  loadAllUsers: () => Promise<void>;
-  deleteUser: (id: string) => Promise<void>;
-  restoreUser: (id: string) => Promise<void>;
-  permanentDeleteUser: (id: string) => Promise<void>;
-  updateUser: (id: string, updates: Partial<AppUser>) => Promise<void>;
-  addUser: (data: Omit<AppUser, 'id' | 'createdAt'>) => Promise<void>;
-  approveUser: (id: string) => Promise<void>;
-  rejectUser: (id: string) => Promise<void>;
-  sendPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>;
+  sendPasswordReset: (email: string) => Promise<AuthResult>;
+  updateProfile: (updates: Partial<AppUser>) => Promise<void>;
+  deleteAccount: () => Promise<AuthResult>;
 }
 
 export const useAuthStore = create<AuthStore>()((set, get) => ({
   currentUser: null,
-  users: [],
-  deletedUsers: [],
-  pendingUsers: [],
   isLoading: true,
 
   setCurrentUser: (user) => set({ currentUser: user, isLoading: false }),
@@ -56,194 +60,87 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
 
   login: async (email, password) => {
     try {
-      const credential = await signInWithEmailAndPassword(auth, email, password);
-      const uid = credential.user.uid;
-      const snap = await getDoc(doc(db, 'users', uid));
-      if (!snap.exists()) {
+      const cred = await signInWithEmailAndPassword(auth, email.trim(), password);
+      const snap = await getDoc(doc(db, 'users', cred.user.uid));
+      if (snap.exists() && (snap.data() as AppUser).blocked) {
         await signOut(auth);
-        return { success: false, error: 'Профиль не найден.' };
+        return { success: false, error: 'errBlocked' };
       }
-      const userData = snap.data() as AppUser;
-      if ((userData as any).deleted) {
-        await signOut(auth);
-        return { success: false, error: 'Аккаунт заблокирован.' };
-      }
-      if ((userData as any).status === 'pending') {
-        await signOut(auth);
-        return { success: false, error: 'Ваш аккаунт ожидает одобрения администратора.' };
-      }
-      if ((userData as any).status === 'rejected') {
-        await signOut(auth);
-        return { success: false, error: 'Ваш аккаунт отклонён администратором.' };
-      }
-      set({ currentUser: userData });
       return { success: true };
-    } catch (err: any) {
-      const code = err?.code ?? '';
-      if (code.includes('invalid-credential') || code.includes('wrong-password') || code.includes('user-not-found')) {
-        return { success: false, error: 'Неверный email или пароль' };
+    } catch (err) {
+      return { success: false, error: mapError(err) };
+    }
+  },
+
+  loginWithGoogle: async (locale) => {
+    try {
+      const cred = await signInWithPopup(auth, new GoogleAuthProvider());
+      const userRef = doc(db, 'users', cred.user.uid);
+      const snap = await getDoc(userRef);
+      if (!snap.exists()) {
+        const profile = newProfile(cred.user.uid, cred.user.displayName ?? '', cred.user.email ?? '', locale);
+        await setDoc(userRef, profile);
+      } else if ((snap.data() as AppUser).blocked) {
+        await signOut(auth);
+        return { success: false, error: 'errBlocked' };
       }
-      return { success: false, error: 'Ошибка входа. Попробуйте ещё раз.' };
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: mapError(err) };
+    }
+  },
+
+  register: async (name, email, password, locale) => {
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+      await updateAuthProfile(cred.user, { displayName: name.trim() }).catch(() => {});
+      const profile = newProfile(cred.user.uid, name.trim(), email.trim(), locale);
+      await setDoc(doc(db, 'users', cred.user.uid), profile);
+      set({ currentUser: profile });
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: mapError(err) };
     }
   },
 
   logout: async () => {
     await signOut(auth);
-    set({ currentUser: null, users: [], deletedUsers: [], pendingUsers: [] });
-  },
-
-  register: async (name, email, password) => {
-    try {
-      const credential = await createUserWithEmailAndPassword(auth, email, password);
-      const uid = credential.user.uid;
-      const role: UserRole = email.toLowerCase() === 'admin@gmail.com' ? 'admin' : 'user';
-      const newUser: AppUser = {
-        id: uid,
-        name,
-        email,
-        password: '',
-        role,
-        currency: '₸',
-        theme: 'dark',
-        createdAt: new Date().toISOString(),
-        status: 'pending',
-      };
-      await setDoc(doc(db, 'users', uid), newUser);
-      return { success: true, pending: true };
-    } catch (err: any) {
-      if (err?.code === 'auth/email-already-in-use') {
-        return { success: false, error: 'Email уже используется' };
-      }
-      return { success: false, error: 'Ошибка регистрации. Попробуйте ещё раз.' };
-    }
-  },
-
-  updateCurrentUser: async (updates) => {
-    const user = get().currentUser;
-    if (!user) return;
-    // Replace undefined values with deleteField() for Firestore
-    const firestoreUpdates: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(updates as Record<string, unknown>)) {
-      firestoreUpdates[key] = value === undefined ? deleteField() : value;
-    }
-    await updateDoc(doc(db, 'users', user.id), firestoreUpdates);
-    // For local state, remove keys that were deleted
-    const localUpdated = { ...user };
-    for (const [key, value] of Object.entries(updates as Record<string, unknown>)) {
-      if (value === undefined) {
-        delete (localUpdated as Record<string, unknown>)[key];
-      } else {
-        (localUpdated as Record<string, unknown>)[key] = value;
-      }
-    }
-    set({ currentUser: localUpdated });
-  },
-
-  loadAllUsers: async () => {
-    const [activeSnap, deletedSnap] = await Promise.all([
-      getDocs(collection(db, 'users')),
-      getDocs(collection(db, 'deletedUsers')),
-    ]);
-    const active = activeSnap.docs.map((d) => d.data() as AppUser).filter((u) => !(u as any).deleted);
-    const approved = active.filter((u) => !u.status || u.status === 'approved');
-    const pending = active.filter((u) => u.status === 'pending');
-    const deleted = deletedSnap.docs.map((d) => d.data() as AppUser);
-    set({ users: approved, pendingUsers: pending, deletedUsers: deleted });
-  },
-
-  addUser: async (userData) => {
-    // Creates Firestore profile only — the user still needs to register via /register
-    // to get a Firebase Auth account with this email.
-    const id = `pending-${Date.now()}`;
-    const newUser: AppUser = { ...userData, id, createdAt: new Date().toISOString(), status: 'approved' as const };
-    await setDoc(doc(db, 'users', id), newUser);
-    set((s) => ({ users: [...s.users, newUser] }));
-  },
-
-  deleteUser: async (id) => {
-    const user = get().users.find((u) => u.id === id);
-    if (!user) return;
-    await Promise.all([
-      setDoc(doc(db, 'deletedUsers', id), { ...user, deletedAt: new Date().toISOString() }),
-      deleteDoc(doc(db, 'users', id)),
-    ]);
-    set((s) => ({
-      users: s.users.filter((u) => u.id !== id),
-      deletedUsers: [...s.deletedUsers, user],
-    }));
-  },
-
-  restoreUser: async (id) => {
-    const user = get().deletedUsers.find((u) => u.id === id);
-    if (!user) return;
-    await Promise.all([
-      setDoc(doc(db, 'users', id), user),
-      deleteDoc(doc(db, 'deletedUsers', id)),
-    ]);
-    set((s) => ({
-      deletedUsers: s.deletedUsers.filter((u) => u.id !== id),
-      users: [...s.users, user],
-    }));
-  },
-
-  permanentDeleteUser: async (id) => {
-    await deleteDoc(doc(db, 'deletedUsers', id));
-    // Also delete from Firebase Auth via API route (best-effort — skip if it fails)
-    try {
-      const idToken = await auth.currentUser?.getIdToken();
-      if (idToken) {
-        await fetch('/api/admin/delete-user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uid: id, idToken }),
-        });
-      }
-    } catch {
-      // Firebase Admin not configured — Auth account remains but user can't log in
-    }
-    set((s) => ({ deletedUsers: s.deletedUsers.filter((u) => u.id !== id) }));
-  },
-
-  updateUser: async (id, updates) => {
-    await updateDoc(doc(db, 'users', id), updates as Record<string, unknown>);
-    set((s) => ({
-      users: s.users.map((u) => (u.id === id ? { ...u, ...updates } : u)),
-      currentUser: s.currentUser?.id === id ? { ...s.currentUser, ...updates } : s.currentUser,
-    }));
-  },
-
-  approveUser: async (id) => {
-    try {
-      await updateDoc(doc(db, 'users', id), { status: 'approved' });
-    } catch (err: any) {
-      console.error('[approveUser] Firestore error:', err?.code, err?.message);
-      throw err;
-    }
-    const user = get().pendingUsers.find((u) => u.id === id);
-    if (!user) return;
-    const approved = { ...user, status: 'approved' as const };
-    set((s) => ({
-      pendingUsers: s.pendingUsers.filter((u) => u.id !== id),
-      users: [...s.users, approved],
-    }));
-  },
-
-  rejectUser: async (id) => {
-    try {
-      await updateDoc(doc(db, 'users', id), { status: 'rejected' });
-    } catch (err: any) {
-      console.error('[rejectUser] Firestore error:', err?.code, err?.message);
-      throw err;
-    }
-    set((s) => ({ pendingUsers: s.pendingUsers.filter((u) => u.id !== id) }));
+    set({ currentUser: null });
   },
 
   sendPasswordReset: async (email) => {
     try {
-      await sendPasswordResetEmail(auth, email);
+      await sendPasswordResetEmail(auth, email.trim());
       return { success: true };
-    } catch (err: any) {
-      return { success: false, error: 'Не удалось отправить письмо. Проверьте email.' };
+    } catch (err) {
+      return { success: false, error: mapError(err) };
+    }
+  },
+
+  updateProfile: async (updates) => {
+    const user = get().currentUser;
+    if (!user) return;
+    const fsUpdates: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(updates)) fsUpdates[k] = v === undefined ? deleteField() : v;
+    // Role and blocked flags are admin-only (enforced by security rules too).
+    delete fsUpdates.role;
+    delete fsUpdates.blocked;
+    set({ currentUser: { ...user, ...updates, role: user.role } });
+    await updateDoc(doc(db, 'users', user.id), fsUpdates);
+  },
+
+  deleteAccount: async () => {
+    const fbUser = auth.currentUser;
+    if (!fbUser) return { success: false, error: 'errGeneric' };
+    try {
+      const { wipeUserData } = await import('@/lib/actions');
+      await wipeUserData();
+      await deleteDoc(doc(db, 'users', fbUser.uid));
+      await deleteAuthUser(fbUser);
+      set({ currentUser: null });
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: mapError(err) };
     }
   },
 }));

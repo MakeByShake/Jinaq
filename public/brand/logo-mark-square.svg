@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="jq-bg" x1="6" y1="4" x2="58" y2="62" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#19C37D"/>
+      <stop offset="1" stop-color="#047857"/>
+    </linearGradient>
+    <linearGradient id="jq-leaf" x1="36" y1="6" x2="54" y2="24" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FDE68A"/>
+      <stop offset="1" stop-color="#F59E0B"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="0" fill="url(#jq-bg)"/>
+  <path d="M36 27v11.5a9.5 9.5 0 0 1-19 0" stroke="#fff" stroke-width="7" stroke-linecap="round" fill="none"/>
+  <path d="M36 25.5c0-9.5 5.6-14.5 15-14.5 0 9-5.6 14.5-15 14.5Z" fill="url(#jq-leaf)"/>
+  <path d="M34.5 25.5C34.5 19 30.6 15 24 15c0 6.3 3.9 10.5 10.5 10.5Z" fill="#FCD34D" fill-opacity=".85"/>
+</svg>

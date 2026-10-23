@@ -1,44 +1,109 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, ShoppingBag, TrendingUp, CreditCard, Clock, User } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, PieChart, Plus, Grid2x2, Shield } from 'lucide-react';
+import { useQuickAdd } from '@/stores/ui-store';
+import { useAuthStore } from '@/stores/auth-store';
+import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
+import { ResponsiveSheet } from '@/components/app/sheet';
+import { NAV_ITEMS, SETTINGS_ITEM, isActive } from './nav-items';
 
-const NAV_ITEMS = [
-  { href: '/dashboard', icon: Home, label: 'Главная' },
-  { href: '/dashboard/wishlist', icon: ShoppingBag, label: 'Вишлист' },
-  { href: '/dashboard/income', icon: TrendingUp, label: 'Доходы' },
-  { href: '/dashboard/debts', icon: CreditCard, label: 'Долги' },
-  { href: '/dashboard/history', icon: Clock, label: 'История' },
-  { href: '/dashboard/profile', icon: User, label: 'Профиль' },
+const PRIMARY = [
+  { href: '/dashboard', icon: LayoutDashboard, key: 'overview' },
+  { href: '/dashboard/transactions', icon: ArrowLeftRight, key: 'transactions' },
+  null, // FAB slot
+  { href: '/dashboard/analytics', icon: PieChart, key: 'analytics' },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
+  const t = useT();
+  const openAdd = useQuickAdd((s) => s.openAdd);
+  const isAdmin = useAuthStore((s) => s.currentUser?.role === 'admin');
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  const primaryHrefs = PRIMARY.filter(Boolean).map((p) => p!.href);
+  const moreActive = !primaryHrefs.some((h) => isActive(pathname, h)) && pathname.startsWith('/dashboard');
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-card/95 backdrop-blur-xl border-t border-border safe-bottom">
-      <div className="flex items-stretch h-16">
-        {NAV_ITEMS.map((item) => {
-          const active = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href));
-          return (
+    <>
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/90 backdrop-blur-xl md:hidden safe-bottom">
+        <div className="mx-auto flex h-16 max-w-md items-stretch px-2">
+          {PRIMARY.map((item, i) =>
+            item ? (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  'flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors',
+                  isActive(pathname, item.href) ? 'text-primary' : 'text-muted-foreground',
+                )}
+              >
+                <item.icon className="h-[22px] w-[22px]" strokeWidth={isActive(pathname, item.href) ? 2.4 : 2} />
+                {t(`nav.${item.key}`)}
+              </Link>
+            ) : (
+              <div key={`fab-${i}`} className="flex flex-1 items-start justify-center">
+                <button
+                  type="button"
+                  onClick={() => openAdd('expense')}
+                  aria-label={t('nav.add')}
+                  className="-mt-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-4 ring-background transition-transform active:scale-90"
+                >
+                  <Plus className="h-7 w-7" strokeWidth={2.6} />
+                </button>
+              </div>
+            ),
+          )}
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            className={cn(
+              'flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-semibold',
+              moreActive ? 'text-primary' : 'text-muted-foreground',
+            )}
+          >
+            <Grid2x2 className="h-[22px] w-[22px]" />
+            {t('common.more')}
+          </button>
+        </div>
+      </nav>
+
+      <ResponsiveSheet open={moreOpen} onOpenChange={setMoreOpen} title={t('common.more')}>
+        <div className="grid grid-cols-3 gap-2 pb-2">
+          {[...NAV_ITEMS.filter((i) => !primaryHrefs.includes(i.href)), SETTINGS_ITEM].map((item) => (
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setMoreOpen(false)}
               className={cn(
-                'flex flex-1 flex-col items-center justify-center gap-0.5 transition-colors text-xs font-medium',
-                active
-                  ? 'text-emerald-500'
-                  : 'text-muted-foreground hover:text-foreground'
+                'flex flex-col items-center gap-2 rounded-2xl border p-3 text-center text-xs font-semibold transition-colors',
+                isActive(pathname, item.href) ? 'border-primary bg-accent text-accent-foreground' : 'border-border hover:bg-muted',
               )}
             >
-              <item.icon className={cn('h-5 w-5 transition-transform', active && 'scale-110')} />
-              <span className="text-[10px] leading-none">{item.label}</span>
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-muted">
+                <item.icon className="h-5 w-5" />
+              </span>
+              {t(`nav.${item.key}`)}
             </Link>
-          );
-        })}
-      </div>
-    </nav>
+          ))}
+          {isAdmin && (
+            <Link
+              href="/admin"
+              onClick={() => setMoreOpen(false)}
+              className="flex flex-col items-center gap-2 rounded-2xl border border-border p-3 text-center text-xs font-semibold hover:bg-muted"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gold/15 text-gold">
+                <Shield className="h-5 w-5" />
+              </span>
+              {t('nav.admin')}
+            </Link>
+          )}
+        </div>
+      </ResponsiveSheet>
+    </>
   );
 }

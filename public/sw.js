@@ -1,17 +1,13 @@
-const CACHE_NAME = 'pfa-cache-v1';
+const CACHE_NAME = 'jinaq-cache-v2';
 
 // App shell — pages and static assets to cache on install
 const APP_SHELL = [
   '/',
   '/login',
+  '/register',
   '/dashboard',
-  '/dashboard/wishlist',
-  '/dashboard/income',
-  '/dashboard/debts',
-  '/dashboard/calculations',
-  '/dashboard/history',
-  '/dashboard/profile',
   '/manifest.json',
+  '/brand/logo-mark.svg',
   '/favicon-32.png',
   '/icon-192.png',
   '/icon-512.png',
