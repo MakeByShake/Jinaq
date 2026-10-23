@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, doc, getDoc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
 import { useAuthStore, newProfile } from '@/stores/auth-store';
 import { COLLECTIONS, useData } from '@/stores/data-store';
 import { useLocaleStore } from '@/i18n';
@@ -13,6 +13,10 @@ import type { AppUser, Plan } from '@/lib/types';
 /** Subscribes to the signed-in user's profile and data. Mounted once in Providers. */
 export function useFirebaseData() {
   useEffect(() => {
+    if (!isFirebaseConfigured) {
+      useAuthStore.getState().setCurrentUser(null);
+      return;
+    }
     let unsubs: Array<() => void> = [];
     const stop = () => {
       unsubs.forEach((u) => u());
