@@ -1,0 +1,70 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Jinaq — Cloud Firestore security rules
+//
+// Deploy:
+//   npm i -g firebase-tools && firebase login
+//   firebase use <your-project-id>
+//   firebase deploy --only firestore:rules
+// (or paste this file into Firebase console → Firestore Database → Rules → Publish)
+//
+// Make the first admin:
+//   Firebase console → Firestore Database → users → <your uid> document →
+//   set the field  role: "admin"  (string). Sign out and back in; "Admin panel"
+//   appears in the app. Further admins can then be promoted from /admin.
+//
+// Model:
+//   users/{uid}             — profile (role, blocked, name, locale, …)
+//   users/{uid}/**          — all of that user's data (transactions, goals, …)
+// ─────────────────────────────────────────────────────────────────────────────
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return signedIn()
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', 'user') == 'admin'
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('blocked', false) != true;
+    }
+
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+
+      // New profiles are always plain, unblocked users.
+      allow create: if isOwner(uid)
+        && request.resource.data.role == 'user'
+        && !('blocked' in request.resource.data);
+
+      // Owners edit their own profile but never their role / blocked flag.
+      // Admins may change only role / blocked of *other* users.
+      allow update: if (isOwner(uid) && !changedKeys().hasAny(['role', 'blocked']))
+        || (!isOwner(uid) && isAdmin() && changedKeys().hasOnly(['role', 'blocked'])
+            && request.resource.data.get('role', 'user') in ['user', 'admin']);
+
+      // Owners can delete their own account. Admin deletion goes through the server API.
+      allow delete: if isOwner(uid);
+
+      // Everything nested under the profile belongs to the owner only.
+      match /{document=**} {
+        allow read, write: if isOwner(uid);
+      }
+    }
+
+    // Everything else is denied.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

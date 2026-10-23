@@ -22,7 +22,9 @@ export function usePwa() {
     }
 
     // Detect iOS
-    setIsIos(/iPhone|iPad|iPod/.test(navigator.userAgent) && !(window as any).MSStream);
+    // Reading browser-only values after mount keeps SSR markup stable.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsIos(/iPhone|iPad|iPod/.test(navigator.userAgent) && !('MSStream' in window));
 
     // Detect if already installed as PWA
     setIsInstalled(window.matchMedia('(display-mode: standalone)').matches);

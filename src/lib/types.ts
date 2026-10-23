@@ -72,6 +72,8 @@ export interface Transaction {
   recurringId?: string;
   debtId?: string;
   goalId?: string;
+  /** Balance correction — moves the balance but is ignored in spending stats. */
+  adjustment?: boolean;
 }
 
 // ─── Budgets (monthly limit per expense category) ────────────────────────────

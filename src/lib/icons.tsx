@@ -1,3 +1,4 @@
+import { createElement } from 'react';
 import {
   ShoppingCart, Coffee, Bus, CarTaxiFront, Home, Wifi, Repeat, HeartPulse, Shirt, Sparkles,
   Gamepad2, GraduationCap, Gift, Plane, Dumbbell, Sofa, PawPrint, MoreHorizontal, Briefcase,
@@ -63,7 +64,6 @@ const SIZES = {
 
 /** Tinted rounded square with a coloured glyph — the visual unit for categories. */
 export function IconBubble({ icon, color = '#64748B', size = 'md', className = '' }: IconBubbleProps) {
-  const Icon = getIcon(icon);
   const s = SIZES[size];
   return (
     <span
@@ -71,7 +71,12 @@ export function IconBubble({ icon, color = '#64748B', size = 'md', className = '
       style={{ backgroundColor: `${color}1F`, color }}
       aria-hidden
     >
-      <Icon className={s.icon} strokeWidth={2.2} />
+      {createElement(getIcon(icon), { className: s.icon, strokeWidth: 2.2 })}
     </span>
   );
+}
+
+/** Renders an icon from the registry by key. */
+export function DynamicIcon({ name, ...props }: { name?: string } & React.ComponentProps<LucideIcon>) {
+  return createElement(getIcon(name), props);
 }

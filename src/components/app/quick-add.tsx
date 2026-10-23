@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ResponsiveSheet } from './sheet';
 import { Segmented } from './ui';
-import { IconBubble, getIcon } from '@/lib/icons';
+import { IconBubble, DynamicIcon } from '@/lib/icons';
 import { useQuickAdd } from '@/stores/ui-store';
 import { useData } from '@/stores/data-store';
 import { useAccounts, useBalances, useCategories } from '@/hooks/use-finance';
@@ -147,10 +147,9 @@ export function QuickAddSheet() {
   const yesterday = toDay(addDays(new Date(), -1));
   const accentText = kind === 'income' ? 'text-income' : kind === 'expense' ? 'text-expense' : 'text-foreground';
 
-  const AccountChips = ({ value, onChange, exclude }: { value?: string; onChange: (id: string) => void; exclude?: string }) => (
+  const accountChips = (value: string | undefined, onChange: (id: string) => void, exclude?: string) => (
     <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
       {accounts.filter((a) => a.id !== exclude).map((a) => {
-        const Icon = getIcon(a.icon);
         const active = value === a.id;
         return (
           <button
@@ -162,7 +161,7 @@ export function QuickAddSheet() {
               active ? 'border-primary bg-accent' : 'border-border hover:bg-muted',
             )}
           >
-            <Icon className="h-4 w-4" style={{ color: a.color }} />
+            <DynamicIcon name={a.icon} className="h-4 w-4" style={{ color: a.color }} />
             <span className="text-xs leading-tight">
               <span className="block font-semibold">{a.name}</span>
               <span className="block text-muted-foreground tabular">{fmt(balances[a.id] ?? 0, { compact: true })}</span>
@@ -289,7 +288,7 @@ export function QuickAddSheet() {
 
         {/* Number pad (phones) */}
         {isMobile && (
-          <div className="grid grid-cols-4 gap-1.5 pt-1">
+          <div className="grid grid-cols-4 gap-1.5">
             {KEYS.map((k) => (
               <button
                 key={k}
@@ -297,7 +296,7 @@ export function QuickAddSheet() {
                 onClick={() => press(k)}
                 aria-label={k === '⌫' ? 'backspace' : k === '✓' ? t('common.save') : k}
                 className={cn(
-                  'flex h-12 items-center justify-center rounded-2xl text-lg font-semibold transition-colors active:scale-95',
+                  'flex h-11 items-center justify-center rounded-2xl text-lg font-semibold transition-colors active:scale-95',
                   k === '✓' ? 'bg-primary text-primary-foreground' : /[+−⌫]/.test(k) ? 'bg-muted text-muted-foreground' : 'bg-muted/50 hover:bg-muted',
                 )}
               >
@@ -309,12 +308,12 @@ export function QuickAddSheet() {
         {/* Accounts */}
         <div className="space-y-1.5">
           <p className="text-xs font-semibold text-muted-foreground">{kind === 'transfer' ? t('tx.from') : t('common.account')}</p>
-          <AccountChips value={accountId} onChange={setAccountId} />
+          {accountChips(accountId, setAccountId)}
         </div>
         {kind === 'transfer' && (
           <div className="space-y-1.5">
             <p className="text-xs font-semibold text-muted-foreground">{t('tx.to')}</p>
-            <AccountChips value={toAccountId} onChange={setToAccountId} exclude={accountId} />
+            {accountChips(toAccountId, setToAccountId, accountId)}
           </div>
         )}
 

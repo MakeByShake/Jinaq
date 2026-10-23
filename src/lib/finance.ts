@@ -50,7 +50,7 @@ export function periodStats(txs: Transaction[], range: DayRange): PeriodStats {
   const exp = new Map<string, { amount: number; count: number }>();
   const inc = new Map<string, { amount: number; count: number }>();
   for (const tx of txs) {
-    if (tx.kind === 'transfer' || !inRange(tx.date, range)) continue;
+    if (tx.kind === 'transfer' || tx.adjustment || !inRange(tx.date, range)) continue;
     count++;
     const key = tx.categoryId ?? '';
     const map = tx.kind === 'income' ? inc : exp;
@@ -70,7 +70,7 @@ export function periodStats(txs: Transaction[], range: DayRange): PeriodStats {
 export function dailySeries(txs: Transaction[], range: DayRange, kind: 'expense' | 'income' = 'expense') {
   const map = new Map<string, number>();
   for (const tx of txs) {
-    if (tx.kind !== kind || !inRange(tx.date, range)) continue;
+    if (tx.kind !== kind || tx.adjustment || !inRange(tx.date, range)) continue;
     const d = tx.date.slice(0, 10);
     map.set(d, (map.get(d) ?? 0) + tx.amount);
   }
@@ -156,7 +156,7 @@ export interface SafeToSpend {
 export function safeToSpend(spendable: number, txs: Transaction[], recurring: Recurring[], base = new Date()): SafeToSpend {
   const today = toDay(base);
   const spentToday = txs
-    .filter((t) => t.kind === 'expense' && t.date.slice(0, 10) === today)
+    .filter((t) => t.kind === 'expense' && !t.adjustment && t.date.slice(0, 10) === today)
     .reduce((s, t) => s + t.amount, 0);
 
   const nextIncome = recurring

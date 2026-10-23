@@ -16,6 +16,22 @@ import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
 import { NAV_ITEMS, SETTINGS_ITEM, isActive, type NavItem } from './nav-items';
 
+function NavLink({ item, pathname, label }: { item: NavItem; pathname: string; label: string }) {
+  const active = isActive(pathname, item.href);
+  return (
+    <Link
+      href={item.href}
+      className={cn(
+        'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors',
+        active ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+      )}
+    >
+      <item.icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
+      {label}
+    </Link>
+  );
+}
+
 export function DesktopSidebar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -26,22 +42,6 @@ export function DesktopSidebar() {
   const openAdd = useQuickAdd((s) => s.openAdd);
   const { total } = useBalances();
   const { installPrompt, isInstalled, installApp } = usePwa();
-
-  const NavLink = ({ item }: { item: NavItem }) => {
-    const active = isActive(pathname, item.href);
-    return (
-      <Link
-        href={item.href}
-        className={cn(
-          'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-semibold transition-colors',
-          active ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground/75 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-        )}
-      >
-        <item.icon className={cn('h-[18px] w-[18px] shrink-0', active ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
-        {t(`nav.${item.key}`)}
-      </Link>
-    );
-  };
 
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar md:flex">
@@ -64,14 +64,14 @@ export function DesktopSidebar() {
       <nav className="mt-4 flex-1 space-y-5 overflow-y-auto px-3 pb-4">
         <div className="space-y-0.5">
           <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">{t('nav.sectionMoney')}</p>
-          {NAV_ITEMS.filter((i) => i.section === 'money').map((i) => <NavLink key={i.href} item={i} />)}
+          {NAV_ITEMS.filter((i) => i.section === 'money').map((i) => <NavLink key={i.href} item={i} pathname={pathname} label={t(`nav.${i.key}`)} />)}
         </div>
         <div className="space-y-0.5">
           <p className="px-3 pb-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/70">{t('nav.sectionPlan')}</p>
-          {NAV_ITEMS.filter((i) => i.section === 'plan').map((i) => <NavLink key={i.href} item={i} />)}
+          {NAV_ITEMS.filter((i) => i.section === 'plan').map((i) => <NavLink key={i.href} item={i} pathname={pathname} label={t(`nav.${i.key}`)} />)}
         </div>
         <div className="space-y-0.5 border-t border-sidebar-border pt-3">
-          <NavLink item={SETTINGS_ITEM} />
+          <NavLink item={SETTINGS_ITEM} pathname={pathname} label={t(`nav.${SETTINGS_ITEM.key}`)} />
           {user?.role === 'admin' && (
             <Link
               href="/admin"

@@ -71,7 +71,7 @@ export default function OverviewPage() {
     if (growth && growth.pct >= 20) {
       insights.push({ icon: Lightbulb, text: t('dash.topGrowth', { cat: label(growth.categoryId), pct: growth.pct }), tone: 'text-warning bg-warning/15' });
     }
-    if (month.income > 0 && month.net > 0) {
+    if (month.income > 0 && month.net / month.income >= 0.01) {
       insights.push({ icon: Sparkles, text: t('dash.savingsRate', { pct: Math.round((month.net / month.income) * 100) }), tone: 'text-income bg-income/12' });
     }
 
