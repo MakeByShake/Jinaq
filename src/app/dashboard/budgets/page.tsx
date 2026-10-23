@@ -162,13 +162,13 @@ export default function BudgetsPage() {
       ) : (
         <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
           {/* ─── Hero ─── */}
-          <section className="relative overflow-hidden rounded-[28px] bg-brand-gradient p-5 text-white shadow-xl shadow-emerald-900/20 sm:p-6 lg:col-span-3">
+          <section className="@container relative overflow-hidden rounded-[28px] bg-brand-gradient p-5 text-white shadow-xl shadow-emerald-900/20 sm:p-6 lg:col-span-3">
             <div className="pointer-events-none absolute -right-10 -bottom-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-            <div className="relative grid gap-5 md:grid-cols-[1fr_auto] md:items-end">
+            <div className="relative grid grid-cols-1 gap-5 @xl:grid-cols-[minmax(0,1fr)_auto] @xl:items-end">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-white/75">{t('bud.heroLabel')}</p>
                 <p className="mt-1 flex flex-wrap items-baseline gap-x-2">
-                  <span className="font-display text-[2.1rem] leading-tight font-semibold tabular sm:text-5xl">{fmt(totalSpent)}</span>
+                  <span className="font-display fit-hero leading-tight font-semibold tabular">{fmt(totalSpent)}</span>
                   <span className="text-sm font-medium text-white/75 tabular">{t('bud.ofLimit', { amount: fmt(totalLimit) })}</span>
                 </p>
 
@@ -188,18 +188,18 @@ export default function BudgetsPage() {
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 md:min-w-80">
+              <div className="grid grid-cols-1 gap-2 min-[340px]:grid-cols-2 @xl:min-w-80">
                 <div className="rounded-2xl bg-white/12 p-3.5 backdrop-blur-sm">
                   <p className="flex items-center gap-1.5 text-xs font-medium text-white/75">
                     <Sparkles className="h-3.5 w-3.5" /> {t('bud.perDayAll')}
                   </p>
-                  <p className="mt-1 truncate font-display text-xl font-semibold tabular">{fmt(Math.round(totalLeft / daysLeft))}</p>
+                  <p className="mt-1 truncate font-display fit-md font-semibold tabular">{fmt(Math.round(totalLeft / daysLeft))}</p>
                 </div>
                 <div className="rounded-2xl bg-white/12 p-3.5 backdrop-blur-sm">
                   <p className="flex items-center gap-1.5 text-xs font-medium text-white/75">
                     <CalendarDays className="h-3.5 w-3.5" /> {t('bud.daysLeft')}
                   </p>
-                  <p className="mt-1 truncate font-display text-xl font-semibold tabular">{t('common.days', { count: daysLeft })}</p>
+                  <p className="mt-1 truncate font-display fit-md font-semibold tabular">{t('common.days', { count: daysLeft })}</p>
                 </div>
               </div>
             </div>

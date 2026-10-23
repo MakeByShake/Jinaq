@@ -289,12 +289,12 @@ export default function RecurringPage() {
 
       <div className="grid gap-4 lg:grid-cols-3 lg:gap-5">
         {!isEmpty && (
-          <section className="relative overflow-hidden rounded-[28px] bg-brand-gradient p-5 text-white shadow-xl shadow-emerald-900/20 sm:p-6 lg:col-span-3">
+          <section className="@container relative overflow-hidden rounded-[28px] bg-brand-gradient p-5 text-white shadow-xl shadow-emerald-900/20 sm:p-6 lg:col-span-3">
             <div className="pointer-events-none absolute -right-10 -bottom-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-            <div className="relative grid gap-5 md:grid-cols-[1fr_auto] md:items-end">
+            <div className="relative grid grid-cols-1 gap-5 @xl:grid-cols-[minmax(0,1fr)_auto] @xl:items-end">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-white/75">{fixedIncome > 0 ? t('rec.freeAfter') : t('rec.fixedPerMonth')}</p>
-                <p className="mt-1 truncate font-display text-[2.1rem] leading-tight font-semibold tabular sm:text-5xl">
+                <p className="mt-1 truncate font-display fit-hero leading-tight font-semibold tabular">
                   {fmt(Math.round(fixedIncome > 0 ? free : fixedExpense))}
                 </p>
                 {fixedIncome === 0 && <p className="mt-2 max-w-md text-xs text-white/80">{t('rec.noIncomeHint')}</p>}

@@ -231,12 +231,12 @@ export function AuthShell({ title, subtitle, children, footer }: {
   return (
     <div className="grid min-h-dvh bg-background lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
       <div className="flex min-h-dvh flex-col px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-8">
-        <header className="flex items-center justify-between gap-3">
+        <header className="flex items-center justify-between gap-2 sm:gap-3">
           <Link href="/" aria-label={t('auth.backHome')} className="flex items-center gap-1.5 rounded-xl py-1.5 pr-2 text-muted-foreground hover:text-foreground">
             <ArrowLeft className="h-4 w-4 lg:hidden" />
-            <Logo markClassName="h-8 w-8" className="text-foreground" />
+            <Logo markClassName="h-8 w-8" className="text-foreground [&>span:last-child]:hidden min-[360px]:[&>span:last-child]:inline" />
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
             <LanguageSwitcher />
             <ThemeButton />
           </div>
@@ -244,7 +244,7 @@ export function AuthShell({ title, subtitle, children, footer }: {
 
         <main className="flex flex-1 items-center justify-center py-8">
           <div className="w-full max-w-[400px] animate-in fade-in slide-in-from-bottom-2 duration-500">
-            <h1 className="font-display text-[1.7rem] leading-tight font-semibold tracking-tight sm:text-3xl">{title}</h1>
+            <h1 className="font-display text-[1.45rem] leading-tight font-semibold tracking-tight [overflow-wrap:anywhere] min-[360px]:text-[1.7rem] sm:text-3xl">{title}</h1>
             {subtitle && <p className="mt-2 text-[15px] text-muted-foreground">{subtitle}</p>}
             <div className="mt-7">{children}</div>
             {footer && <div className="mt-7 text-center text-sm text-muted-foreground">{footer}</div>}

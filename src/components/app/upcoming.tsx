@@ -43,11 +43,11 @@ export function UpcomingRow({ item }: { item: UpcomingItem }) {
       <IconBubble icon={c?.icon} color={c?.color} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-semibold">{r.name}</p>
-        <p className={cn('text-xs', overdue ? 'font-semibold text-expense' : item.days <= 1 ? 'font-semibold text-warning' : 'text-muted-foreground')}>
+        <p className={cn('truncate text-xs', overdue ? 'font-semibold text-expense' : item.days <= 1 ? 'font-semibold text-warning' : 'text-muted-foreground')}>
           {when}
         </p>
       </div>
-      <Money value={r.amount} kind={r.kind} className="text-sm font-bold" />
+      <Money value={r.amount} kind={r.kind} className="shrink-0 text-[13px] font-bold min-[360px]:text-sm" />
       <button
         type="button"
         onClick={mark}

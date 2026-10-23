@@ -95,12 +95,12 @@ export default function OverviewPage() {
         {/* ─── Left / main column ─── */}
         <div className="space-y-4 lg:col-span-2 lg:space-y-5">
           {/* Hero */}
-          <section className="relative overflow-hidden rounded-[28px] bg-brand-gradient p-5 text-white shadow-xl shadow-emerald-900/20 sm:p-6">
+          <section className="@container relative overflow-hidden rounded-[28px] bg-brand-gradient p-5 text-white shadow-xl shadow-emerald-900/20 sm:p-6">
             <div className="pointer-events-none absolute -right-10 -bottom-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-            <div className="relative grid gap-5 sm:grid-cols-[1fr_auto] sm:items-end">
+            <div className="relative grid grid-cols-1 gap-5 @xl:grid-cols-[minmax(0,1fr)_auto] @xl:items-end">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-white/75">{t('dash.totalBalance')}</p>
-                <p className="mt-1 truncate font-display text-[2.1rem] leading-tight font-semibold tabular sm:text-5xl">{fmt(total)}</p>
+                <p className="mt-1 truncate font-display fit-hero leading-tight font-semibold tabular">{fmt(total)}</p>
                 <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-sm">
                   <span className="flex items-center gap-1.5 text-white/85">
                     <ArrowDownLeft className="h-4 w-4 text-emerald-200" /> {fmt(month.income, { sign: true })}
@@ -111,13 +111,13 @@ export default function OverviewPage() {
                 </div>
               </div>
 
-              <div className="flex items-center gap-4 rounded-2xl bg-white/12 p-3.5 backdrop-blur-sm sm:min-w-64">
+              <div className="flex items-center gap-4 rounded-2xl bg-white/12 p-3.5 backdrop-blur-sm @xl:min-w-64">
                 <Ring value={overspent ? 1 : todayPct} size={60} stroke={7} color={overspent ? '#fda4af' : '#fde68a'}>
                   <Clock className="h-5 w-5 text-white/80" />
                 </Ring>
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium text-white/75">{overspent ? t('dash.overspentToday') : t('dash.canSpendToday')}</p>
-                  <p className="truncate font-display text-xl font-semibold tabular">{fmt(Math.round(Math.abs(sts.leftToday)))}</p>
+                  <p className="truncate font-display fit-md font-semibold tabular">{fmt(Math.round(Math.abs(sts.leftToday)))}</p>
                   <p className="truncate text-[11px] text-white/70">
                     {t(sts.horizonLabel === 'income' ? 'dash.untilIncome' : 'dash.untilMonthEnd', { days: t('common.days', { count: sts.horizonDays }) })}
                   </p>
@@ -137,12 +137,12 @@ export default function OverviewPage() {
                 key={a.k}
                 type="button"
                 onClick={() => openAdd(a.k)}
-                className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card px-2 py-3 text-sm font-bold card-shadow transition-transform active:scale-[0.97] hover:bg-muted/50"
+                className="flex min-w-0 flex-col items-center justify-center gap-1.5 rounded-2xl border border-border bg-card px-1.5 py-2.5 text-xs font-bold card-shadow transition-transform active:scale-[0.97] hover:bg-muted/50 min-[400px]:flex-row min-[400px]:gap-2 min-[400px]:px-2 min-[400px]:py-3 min-[400px]:text-sm"
               >
-                <span className={cn('flex h-7 w-7 items-center justify-center rounded-lg', a.cls)}>
+                <span className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-lg', a.cls)}>
                   <a.icon className="h-4 w-4" />
                 </span>
-                {a.label}
+                <span className="max-w-full truncate">{a.label}</span>
               </button>
             ))}
           </div>

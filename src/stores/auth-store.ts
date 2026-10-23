@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import {
   createUserWithEmailAndPassword, GoogleAuthProvider, sendPasswordResetEmail, signInWithEmailAndPassword,
   signInWithPopup, signOut, updateProfile as updateAuthProfile, deleteUser as deleteAuthUser,
+  EmailAuthProvider, reauthenticateWithCredential, reauthenticateWithPopup,
 } from 'firebase/auth';
 import { deleteDoc, deleteField, doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase';
@@ -48,7 +49,8 @@ interface AuthStore {
   logout: () => Promise<void>;
   sendPasswordReset: (email: string) => Promise<AuthResult>;
   updateProfile: (updates: Partial<AppUser>) => Promise<void>;
-  deleteAccount: () => Promise<AuthResult>;
+  /** Re-confirms identity (password or Google popup), then deletes data and the account. */
+  deleteAccount: (password?: string) => Promise<AuthResult>;
 }
 
 export const useAuthStore = create<AuthStore>()((set, get) => ({
@@ -129,10 +131,19 @@ export const useAuthStore = create<AuthStore>()((set, get) => ({
     await updateDoc(doc(db, 'users', user.id), fsUpdates);
   },
 
-  deleteAccount: async () => {
+  deleteAccount: async (password) => {
     const fbUser = auth.currentUser;
     if (!fbUser) return { success: false, error: 'errGeneric' };
     try {
+      // Firebase only deletes accounts that signed in recently, so confirm identity first —
+      // before touching any data, so a failure never leaves an empty account behind.
+      const usesPassword = fbUser.providerData.some((p) => p.providerId === 'password');
+      if (usesPassword) {
+        if (!password) return { success: false, error: 'errInvalid' };
+        await reauthenticateWithCredential(fbUser, EmailAuthProvider.credential(fbUser.email ?? '', password));
+      } else {
+        await reauthenticateWithPopup(fbUser, new GoogleAuthProvider());
+      }
       const { wipeUserData } = await import('@/lib/actions');
       await wipeUserData();
       await deleteDoc(doc(db, 'users', fbUser.uid));

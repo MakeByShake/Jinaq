@@ -67,7 +67,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="min-h-dvh bg-background">
       <DesktopSidebar />
       <MobileHeader />
-      <main className="min-h-dvh pt-[calc(3.5rem+env(safe-area-inset-top))] md:ml-64 md:pt-0">{children}</main>
+      <main className="min-h-dvh pt-[calc(3.5rem+env(safe-area-inset-top))] pr-[env(safe-area-inset-right)] pl-[env(safe-area-inset-left)] md:ml-[76px] md:pt-0 md:pl-0 lg:ml-64">{children}</main>
       <BottomNav />
       <QuickAddSheet />
       <Suspense fallback={null}>

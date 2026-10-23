@@ -1,6 +1,7 @@
-const CACHE_NAME = 'jinaq-cache-v2';
+// Jinaq service worker — offline shell + safe caching.
+// Bump CACHE_NAME when changing caching rules so old caches are dropped.
+const CACHE_NAME = 'jinaq-cache-v3';
 
-// App shell — pages and static assets to cache on install
 const APP_SHELL = [
   '/',
   '/login',
@@ -14,68 +15,77 @@ const APP_SHELL = [
   '/apple-touch-icon.png',
 ];
 
-// ─── Install: cache app shell ────────────────────────────────────────────────
+const IS_DEV = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
+
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) =>
-      cache.addAll(APP_SHELL).catch(() => {})
-    )
-  );
+  if (!IS_DEV) {
+    event.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(APP_SHELL).catch(() => {})));
+  }
   self.skipWaiting();
 });
 
-// ─── Activate: remove old caches ─────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k))
-      )
-    )
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((k) => k !== CACHE_NAME || IS_DEV).map((k) => caches.delete(k))))
+      .then(() => self.clients.claim()),
   );
-  self.clients.claim();
 });
 
-// ─── Fetch: Network-first for navigation, Cache-first for assets ──────────────
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+  if (IS_DEV || request.method !== 'GET') return;
 
-  // Skip non-GET, Firebase, and external requests
-  if (request.method !== 'GET') return;
   const url = new URL(request.url);
-  if (
-    url.hostname.includes('firestore.googleapis.com') ||
-    url.hostname.includes('firebase') ||
-    url.hostname.includes('googleapis.com') ||
-    url.hostname.includes('gstatic.com') ||
-    !url.origin.startsWith(self.location.origin.replace(/:\d+$/, ''))
-  ) return;
+  // Only handle our own origin; Firebase and other APIs go straight to the network.
+  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
 
-  // Navigation requests: Network-first, fallback to cache
+  // Page navigations: network first, cached copy when offline.
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((res) => {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(request, clone));
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(request, copy));
+          }
           return res;
         })
-        .catch(() => caches.match(request).then((r) => r || caches.match('/dashboard')))
+        .catch(() => caches.match(request).then((r) => r || caches.match('/dashboard'))),
     );
     return;
   }
 
-  // Static assets: Cache-first, fallback to network
+  // Build assets have content hashes in their names: safe to serve from cache forever.
+  if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(
+      caches.match(request).then((cached) =>
+        cached ||
+        fetch(request).then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(request, copy));
+          }
+          return res;
+        }),
+      ),
+    );
+    return;
+  }
+
+  // Everything else (icons, manifest, fonts…): serve cached copy, refresh in the background.
   event.respondWith(
     caches.match(request).then((cached) => {
-      if (cached) return cached;
-      return fetch(request).then((res) => {
-        if (res.ok) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then((c) => c.put(request, clone));
-        }
-        return res;
-      });
-    })
+      const network = fetch(request)
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            caches.open(CACHE_NAME).then((c) => c.put(request, copy));
+          }
+          return res;
+        })
+        .catch(() => cached);
+      return cached || network;
+    }),
   );
 });

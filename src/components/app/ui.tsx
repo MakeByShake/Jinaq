@@ -125,7 +125,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
   className?: string; size?: 'sm' | 'md';
 }) {
   return (
-    <div role="tablist" className={cn('inline-flex rounded-2xl bg-muted p-1', className)}>
+    <div role="tablist" className={cn('inline-flex max-w-full rounded-2xl bg-muted p-1', className)}>
       {options.map((o) => {
         const active = o.value === value;
         return (
@@ -136,8 +136,8 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
             aria-selected={active}
             onClick={() => onChange(o.value)}
             className={cn(
-              'flex-1 rounded-xl font-semibold transition-all',
-              size === 'sm' ? 'px-3 py-1.5 text-xs' : 'px-4 py-2 text-sm',
+              'min-w-0 flex-auto truncate rounded-xl font-semibold transition-all',
+              size === 'sm' ? 'px-2 py-1.5 text-xs sm:px-3' : 'px-2.5 py-2 text-sm sm:px-4',
               active ? cn('bg-card text-foreground shadow-sm', o.className) : 'text-muted-foreground hover:text-foreground',
             )}
           >

@@ -148,6 +148,14 @@
 
   html {
     scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  /* Grid and flex children may shrink below their content width, so long
+     text truncates instead of pushing the page wider than the screen. */
+  .grid > * {
+    min-width: 0;
   }
 
   button:not(:disabled), [role="button"]:not([aria-disabled="true"]) {
@@ -203,4 +211,19 @@
   .dark .card-shadow {
     box-shadow: 0 1px 0 oklch(1 0 0 / 0.03) inset;
   }
+}
+
+/* Money that scales with the width of its block, so long amounts never get cut.
+   The element's direct parent becomes a size container. */
+@utility fit-hero {
+  font-size: clamp(1.45rem, 11.5cqi, 3rem);
+}
+@utility fit-lg {
+  font-size: clamp(1.15rem, 10cqi, 1.75rem);
+}
+@utility fit-md {
+  font-size: clamp(0.8rem, 11.5cqi, 1.25rem);
+}
+:where(*):has(> .fit-hero, > .fit-lg, > .fit-md) {
+  container-type: inline-size;
 }

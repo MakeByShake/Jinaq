@@ -68,6 +68,7 @@ export const set = {
     deleteAccountText: 'Аккаунт и все данные будут удалены без возможности восстановления.',
     accountDeleted: 'Аккаунт удалён',
     confirmWord: 'УДАЛИТЬ',
+    confirmPassword: 'Пароль от аккаунта',
     typeToConfirm: 'Чтобы подтвердить, введите «{word}»',
     relogin: 'Войти снова',
     // Security
@@ -144,6 +145,7 @@ export const set = {
     deleteAccountText: 'Аккаунт пен барлық деректер қалпына келтіру мүмкіндігінсіз жойылады.',
     accountDeleted: 'Аккаунт жойылды',
     confirmWord: 'ЖОЮ',
+    confirmPassword: 'Аккаунт құпиясөзі',
     typeToConfirm: 'Растау үшін «{word}» деп жазыңыз',
     relogin: 'Қайта кіру',
     security: 'Қауіпсіздік',
@@ -218,6 +220,7 @@ export const set = {
     deleteAccountText: 'Your account and all data will be deleted and cannot be restored.',
     accountDeleted: 'Account deleted',
     confirmWord: 'DELETE',
+    confirmPassword: 'Account password',
     typeToConfirm: 'Type “{word}” to confirm',
     relogin: 'Sign in again',
     security: 'Security',

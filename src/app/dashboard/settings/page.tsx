@@ -21,6 +21,7 @@ import { ColorPicker, IconPicker } from '@/components/app/pickers';
 import { UserAvatar } from '@/components/app/user-avatar';
 import { LogoMark } from '@/components/brand/logo';
 import { useData } from '@/stores/data-store';
+import { auth } from '@/lib/firebase';
 import { useAuthStore } from '@/stores/auth-store';
 import { useAccounts, useCategories } from '@/hooks/use-finance';
 import { evalAmount, useCurrency, useMoney } from '@/lib/format';
@@ -100,14 +101,15 @@ function ActionRow({ icon, title, hint, onClick, danger, disabled }: {
 }
 
 /** Irreversible action that requires typing a confirmation word. */
-function TypedConfirm({ open, onOpenChange, title, text, confirmLabel, onConfirm, busy }: {
+function TypedConfirm({ open, onOpenChange, title, text, confirmLabel, onConfirm, busy, askPassword = false }: {
   open: boolean; onOpenChange: (v: boolean) => void; title: string; text: string; confirmLabel: string;
-  onConfirm: () => void; busy: boolean;
+  onConfirm: (password: string) => void; busy: boolean; askPassword?: boolean;
 }) {
   const t = useT();
   const word = t('set.confirmWord');
   const [typed, setTyped] = useState('');
-  const ok = typed.trim().toLocaleUpperCase() === word.toLocaleUpperCase();
+  const [password, setPassword] = useState('');
+  const ok = typed.trim().toLocaleUpperCase() === word.toLocaleUpperCase() && (!askPassword || password.length > 0);
   return (
     <AlertDialog open={open} onOpenChange={(v) => { if (!busy) { onOpenChange(v); if (!v) setTyped(''); } }}>
       <AlertDialogContent className="rounded-3xl">
@@ -118,9 +120,14 @@ function TypedConfirm({ open, onOpenChange, title, text, confirmLabel, onConfirm
         <Field label={t('set.typeToConfirm', { word })}>
           <Input value={typed} onChange={(e) => setTyped(e.target.value)} className={inputCls} autoComplete="off" placeholder={word} />
         </Field>
+        {askPassword && (
+          <Field label={t('set.confirmPassword')}>
+            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={inputCls} autoComplete="current-password" />
+          </Field>
+        )}
         <AlertDialogFooter>
           <AlertDialogCancel className="rounded-xl" disabled={busy}>{t('common.cancel')}</AlertDialogCancel>
-          <Button className="rounded-xl bg-destructive text-white hover:bg-destructive/90" disabled={!ok || busy} onClick={onConfirm}>
+          <Button className="rounded-xl bg-destructive text-white hover:bg-destructive/90" disabled={!ok || busy} onClick={() => onConfirm(password)}>
             {busy ? t('common.loading') : confirmLabel}
           </Button>
         </AlertDialogFooter>
@@ -658,9 +665,11 @@ function DataSection() {
     }
   };
 
-  const removeAccount = async () => {
+  const usesPassword = !!auth?.currentUser?.providerData.some((p) => p.providerId === 'password');
+
+  const removeAccount = async (password: string) => {
     setBusy(true);
-    const res = await deleteAccount();
+    const res = await deleteAccount(password);
     setBusy(false);
     if (res.success) {
       setDialog(null);
@@ -696,6 +705,7 @@ function DataSection() {
         confirmLabel={dialog === 'delete' ? t('set.deleteAccount') : t('set.wipe')}
         onConfirm={dialog === 'delete' ? removeAccount : wipe}
         busy={busy}
+        askPassword={dialog === 'delete' && usesPassword}
       />
     </Panel>
   );

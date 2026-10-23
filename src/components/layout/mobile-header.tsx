@@ -18,7 +18,7 @@ export function MobileHeader() {
 
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-border/60 bg-background/85 backdrop-blur-xl md:hidden safe-top">
-      <div className="flex h-14 items-center justify-between gap-2 px-4">
+      <div className="flex h-14 items-center justify-between gap-2 pr-[max(1rem,env(safe-area-inset-right))] pl-[max(1rem,env(safe-area-inset-left))]">
         <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5">
           <LogoMark className="h-8 w-8" />
           <span className="truncate text-base font-extrabold tracking-tight">

@@ -30,20 +30,20 @@ export function BottomNav() {
 
   return (
     <>
-      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/90 backdrop-blur-xl md:hidden safe-bottom">
-        <div className="mx-auto flex h-16 max-w-md items-stretch px-2">
+      <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-card/90 px-[env(safe-area-inset-left)] backdrop-blur-xl md:hidden safe-bottom">
+        <div className="mx-auto flex h-16 max-w-md items-stretch px-1 min-[360px]:px-2">
           {PRIMARY.map((item, i) =>
             item ? (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors',
+                  'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[10px] font-semibold transition-colors',
                   isActive(pathname, item.href) ? 'text-primary' : 'text-muted-foreground',
                 )}
               >
                 <item.icon className="h-[22px] w-[22px]" strokeWidth={isActive(pathname, item.href) ? 2.4 : 2} />
-                {t(`nav.${item.key}`)}
+                <span className="max-w-full truncate">{t(`nav.${item.key}`)}</span>
               </Link>
             ) : (
               <div key={`fab-${i}`} className="flex flex-1 items-start justify-center">
@@ -62,12 +62,12 @@ export function BottomNav() {
             type="button"
             onClick={() => setMoreOpen(true)}
             className={cn(
-              'flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-semibold',
+              'flex min-w-0 flex-1 flex-col items-center justify-center gap-1 text-[10px] font-semibold',
               moreActive ? 'text-primary' : 'text-muted-foreground',
             )}
           >
             <Grid2x2 className="h-[22px] w-[22px]" />
-            {t('common.more')}
+            <span className="max-w-full truncate">{t('common.more')}</span>
           </button>
         </div>
       </nav>

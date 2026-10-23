@@ -158,12 +158,12 @@ export default function GoalsPage() {
       ) : (
         <>
           {/* ─── Summary ─── */}
-          <section className="relative mb-4 overflow-hidden rounded-[28px] bg-brand-gradient p-5 text-white shadow-xl shadow-emerald-900/20 sm:p-6 md:mb-6">
+          <section className="@container relative mb-4 overflow-hidden rounded-[28px] bg-brand-gradient p-5 text-white shadow-xl shadow-emerald-900/20 sm:p-6 md:mb-6">
             <div className="pointer-events-none absolute -right-10 -bottom-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
-            <div className="relative grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
+            <div className="relative grid grid-cols-1 gap-4 @xl:grid-cols-[minmax(0,1fr)_auto] @xl:items-end">
               <div className="min-w-0">
                 <p className="text-sm font-medium text-white/75">{t('goals.totalSaved')}</p>
-                <p className="mt-1 truncate font-display text-[2.1rem] leading-tight font-semibold tabular sm:text-5xl">{fmt(summary.saved)}</p>
+                <p className="mt-1 truncate font-display fit-hero leading-tight font-semibold tabular">{fmt(summary.saved)}</p>
                 {summary.target > 0 && (
                   <div className="mt-3 max-w-sm">
                     <ProgressBar value={summary.saved / summary.target} color="#fde68a" className="bg-white/20" />
@@ -174,14 +174,14 @@ export default function GoalsPage() {
                   {summary.doneCount > 0 && <span>{t('goals.doneCount', { count: summary.doneCount })}</span>}
                 </p>
               </div>
-              <div className="grid grid-cols-2 gap-2 sm:min-w-80">
+              <div className="grid grid-cols-1 gap-2 min-[340px]:grid-cols-2 @xl:min-w-80">
                 <div className="rounded-2xl bg-white/12 p-3 backdrop-blur-sm">
                   <p className="flex items-center gap-1.5 text-xs font-medium text-white/75"><PiggyBank className="h-3.5 w-3.5" /> {t('goals.totalLeft')}</p>
-                  <p className="mt-1 truncate font-display text-lg font-semibold tabular">{fmt(summary.left)}</p>
+                  <p className="mt-1 truncate font-display fit-md font-semibold tabular">{fmt(summary.left)}</p>
                 </div>
                 <div className="rounded-2xl bg-white/12 p-3 backdrop-blur-sm">
                   <p className="flex items-center gap-1.5 text-xs font-medium text-white/75"><TrendingUp className="h-3.5 w-3.5" /> {t('goals.avgSavings')}</p>
-                  <p className="mt-1 truncate font-display text-lg font-semibold tabular">
+                  <p className="mt-1 truncate font-display fit-md font-semibold tabular">
                     {avgSavings !== 0 ? fmt(Math.round(avgSavings)) : '—'}
                   </p>
                   <p className="truncate text-[11px] text-white/70">{avgSavings !== 0 ? t('goals.avgSavingsHint') : t('goals.avgSavingsNone')}</p>

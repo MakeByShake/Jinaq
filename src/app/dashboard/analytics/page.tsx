@@ -298,7 +298,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* ─── Hero ─── */}
-      <section className="relative mb-4 overflow-hidden rounded-[28px] bg-brand-gradient p-5 text-white shadow-xl shadow-emerald-900/20 sm:p-6 lg:mb-5">
+      <section className="@container relative mb-4 overflow-hidden rounded-[28px] bg-brand-gradient p-5 text-white shadow-xl shadow-emerald-900/20 sm:p-6 lg:mb-5">
         <div className="pointer-events-none absolute -right-10 -bottom-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
         <div className="relative">
           <div className="flex items-center justify-between gap-2" role="group" aria-label={t('an.periodLabel')}>
@@ -324,7 +324,7 @@ export default function AnalyticsPage() {
 
           <div className="mt-4 text-center sm:mt-5">
             <p className="text-sm font-medium text-white/75">{t(kind === 'expense' ? 'an.totalExpense' : 'an.totalIncome')}</p>
-            <p className="mt-1 truncate font-display text-[2.1rem] leading-tight font-semibold tabular sm:text-5xl">{fmt(summary.total)}</p>
+            <p className="mt-1 truncate font-display fit-hero leading-tight font-semibold tabular">{fmt(summary.total)}</p>
             <div className="mt-3 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs">
               {summary.pct === null ? (
                 <span className="text-white/75">{t('an.noPrev')}</span>
