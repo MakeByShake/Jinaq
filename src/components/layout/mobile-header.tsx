@@ -22,7 +22,7 @@ export function MobileHeader() {
         <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5">
           <LogoMark className="h-8 w-8" />
           <span className="truncate text-base font-extrabold tracking-tight">
-            {item ? t(`nav.${item.key}`) : 'Jinaq'}
+            {item ? t(`nav.${item.key}`) : 'Jinaq Wallet'}
           </span>
         </Link>
         <div className="flex items-center gap-2">

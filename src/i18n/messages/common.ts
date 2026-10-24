@@ -1,6 +1,6 @@
 export const common = {
   ru: {
-    appName: 'Jinaq',
+    appName: 'Jinaq Wallet',
     tagline: 'Деньги под контролем',
     save: 'Сохранить',
     cancel: 'Отмена',
@@ -73,7 +73,7 @@ export const common = {
     icon: 'Иконка',
   },
   kk: {
-    appName: 'Jinaq',
+    appName: 'Jinaq Wallet',
     tagline: 'Ақша бақылауда',
     save: 'Сақтау',
     cancel: 'Бас тарту',
@@ -146,7 +146,7 @@ export const common = {
     icon: 'Белгіше',
   },
   en: {
-    appName: 'Jinaq',
+    appName: 'Jinaq Wallet',
     tagline: 'Money under control',
     save: 'Save',
     cancel: 'Cancel',

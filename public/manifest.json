@@ -1,6 +1,6 @@
 {
-  "name": "Jinaq — личные финансы",
-  "short_name": "Jinaq",
+  "name": "Jinaq Wallet — личные финансы",
+  "short_name": "Jinaq Wallet",
   "description": "Учёт расходов и доходов, бюджеты, цели и долги",
   "id": "/dashboard",
   "start_url": "/dashboard",

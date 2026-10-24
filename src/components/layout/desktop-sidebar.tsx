@@ -61,7 +61,7 @@ export function DesktopSidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 z-40 hidden w-[76px] flex-col border-r border-sidebar-border bg-sidebar pl-[env(safe-area-inset-left)] md:flex lg:w-64">
       <div className="flex justify-center pt-5 pb-4 lg:justify-start lg:px-5">
-        <Link href="/dashboard" aria-label="Jinaq">
+        <Link href="/dashboard" aria-label="Jinaq Wallet">
           <LogoMark className="h-10 w-10 lg:hidden" />
           <Logo className="hidden lg:inline-flex" />
         </Link>

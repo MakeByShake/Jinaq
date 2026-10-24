@@ -191,7 +191,7 @@ function BrandPanel() {
 
       <div className="relative flex items-center gap-3">
         <LogoMark className="h-10 w-10 ring-1 ring-white/25 rounded-2xl" />
-        <span className="font-display text-xl font-semibold lowercase">jinaq</span>
+        <span className="font-display text-xl font-semibold lowercase whitespace-nowrap">jinaq<span className="ml-[0.28em] font-medium opacity-80">wallet</span></span>
       </div>
 
       <div className="relative max-w-md">

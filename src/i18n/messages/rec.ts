@@ -73,7 +73,7 @@ export const rec = {
     legendDone: 'отмечено',
     monthTotal: 'Всего за месяц',
     emptyTitle: 'Добавьте регулярные платежи',
-    emptyText: 'Аренда, связь, подписки, стипендия — Jinaq напомнит заранее, учтёт их в сумме «можно тратить сегодня» и покажет, сколько денег остаётся свободными.',
+    emptyText: 'Аренда, связь, подписки, стипендия — Jinaq Wallet напомнит заранее, учтёт их в сумме «можно тратить сегодня» и покажет, сколько денег остаётся свободными.',
   },
   kk: {
     title: 'Тұрақты төлемдер',
@@ -149,7 +149,7 @@ export const rec = {
     legendDone: 'белгіленген',
     monthTotal: 'Айдағы барлығы',
     emptyTitle: 'Тұрақты төлемдерді қосыңыз',
-    emptyText: 'Жалдау, байланыс, жазылымдар, шәкіртақы — Jinaq алдын ала ескертеді, оларды «бүгін жұмсауға болады» сомасында ескереді және қанша ақша бос қалатынын көрсетеді.',
+    emptyText: 'Жалдау, байланыс, жазылымдар, шәкіртақы — Jinaq Wallet алдын ала ескертеді, оларды «бүгін жұмсауға болады» сомасында ескереді және қанша ақша бос қалатынын көрсетеді.',
   },
   en: {
     title: 'Bills & subscriptions',
@@ -225,6 +225,6 @@ export const rec = {
     legendDone: 'done',
     monthTotal: 'Month total',
     emptyTitle: 'Add your recurring bills',
-    emptyText: 'Rent, phone, subscriptions, scholarship — Jinaq reminds you ahead of time, reserves them in “safe to spend today” and shows how much money is truly free.',
+    emptyText: 'Rent, phone, subscriptions, scholarship — Jinaq Wallet reminds you ahead of time, reserves them in “safe to spend today” and shows how much money is truly free.',
   },
 };

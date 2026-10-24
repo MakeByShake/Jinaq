@@ -43,7 +43,7 @@ export const bud = {
     quickApplied: 'Добавлено бюджетов: {count}',
     quickAvg: 'в среднем {amount}',
     emptyTitle: 'Задайте лимиты на месяц',
-    emptyText: 'Бюджет — это потолок трат на категорию: например, 40 000 на кафе. Jinaq покажет, сколько ещё можно тратить в день и когда вы опережаете план.',
+    emptyText: 'Бюджет — это потолок трат на категорию: например, 40 000 на кафе. Jinaq Wallet покажет, сколько ещё можно тратить в день и когда вы опережаете план.',
     emptyNoHistory: 'Добавьте бюджет вручную или ведите учёт — после месяца трат мы предложим лимиты автоматически.',
   },
   kk: {
@@ -90,7 +90,7 @@ export const bud = {
     quickApplied: 'Қосылған бюджеттер: {count}',
     quickAvg: 'орташа {amount}',
     emptyTitle: 'Айлық лимиттер қойыңыз',
-    emptyText: 'Бюджет — санатқа арналған шығын шегі: мысалы, кафеге 40 000. Jinaq күніне тағы қанша жұмсауға болатынын және жоспардан қашан озып кеткеніңізді көрсетеді.',
+    emptyText: 'Бюджет — санатқа арналған шығын шегі: мысалы, кафеге 40 000. Jinaq Wallet күніне тағы қанша жұмсауға болатынын және жоспардан қашан озып кеткеніңізді көрсетеді.',
     emptyNoHistory: 'Бюджетті қолмен қосыңыз немесе есеп жүргізіңіз — бір айдан кейін лимиттерді өзіміз ұсынамыз.',
   },
   en: {
@@ -137,7 +137,7 @@ export const bud = {
     quickApplied: 'Budgets added: {count}',
     quickAvg: 'avg {amount}',
     emptyTitle: 'Set monthly limits',
-    emptyText: 'A budget is a spending cap for a category — say 40,000 on cafes. Jinaq shows how much you can still spend per day and when you get ahead of plan.',
+    emptyText: 'A budget is a spending cap for a category — say 40,000 on cafes. Jinaq Wallet shows how much you can still spend per day and when you get ahead of plan.',
     emptyNoHistory: 'Add a budget manually, or keep tracking — after a month we’ll suggest limits automatically.',
   },
 };

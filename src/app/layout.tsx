@@ -16,19 +16,24 @@ const unbounded = Unbounded({
   display: 'swap',
 });
 
+// Public address of the site (used for link previews). Set NEXT_PUBLIC_SITE_URL on Vercel
+// when the custom domain is connected, e.g. https://jinaqwallet.com
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://jinaq-jade.vercel.app';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: 'Jinaq — личные финансы под контролем',
-    template: '%s · Jinaq',
+    default: 'Jinaq Wallet — личные финансы под контролем',
+    template: '%s · Jinaq Wallet',
   },
   description:
     'Учёт расходов и доходов за 2 касания, бюджеты, цели и долги. Узнайте, сколько можно тратить сегодня. Бесплатно, на русском, казахском и английском.',
-  applicationName: 'Jinaq',
+  applicationName: 'Jinaq Wallet',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Jinaq',
+    title: 'Jinaq Wallet',
   },
   icons: {
     icon: [
@@ -38,10 +43,19 @@ export const metadata: Metadata = {
     apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
   openGraph: {
-    title: 'Jinaq — личные финансы под контролем',
-    description: 'Учёт расходов за 2 касания, бюджеты, цели и долги.',
+    title: 'Jinaq Wallet — знай, сколько можно потратить сегодня',
+    description: 'Учёт расходов за 2 касания, бюджеты, цели и долги. Бесплатно, на казахском, русском и английском.',
     type: 'website',
-    images: ['/icon-512.png'],
+    siteName: 'Jinaq Wallet',
+    locale: 'ru_RU',
+    url: '/',
+    images: [{ url: '/og.png', width: 1200, height: 630, alt: 'Jinaq Wallet — знай, сколько можно потратить сегодня' }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Jinaq Wallet — знай, сколько можно потратить сегодня',
+    description: 'Учёт расходов за 2 касания, бюджеты, цели и долги. Бесплатно.',
+    images: ['/og.png'],
   },
 };
 

@@ -1,7 +1,7 @@
 export const admin = {
   ru: {
     title: 'Админ-панель',
-    subtitle: 'Пользователи и рост Jinaq',
+    subtitle: 'Пользователи и рост Jinaq Wallet',
     backToApp: 'В приложение',
     refresh: 'Обновить',
     statTotal: 'Всего пользователей',
@@ -51,7 +51,7 @@ export const admin = {
   },
   kk: {
     title: 'Әкімші панелі',
-    subtitle: 'Jinaq пайдаланушылары мен өсуі',
+    subtitle: 'Jinaq Wallet пайдаланушылары мен өсуі',
     backToApp: 'Қолданбаға',
     refresh: 'Жаңарту',
     statTotal: 'Барлық пайдаланушы',
@@ -101,7 +101,7 @@ export const admin = {
   },
   en: {
     title: 'Admin panel',
-    subtitle: 'Jinaq users and growth',
+    subtitle: 'Jinaq Wallet users and growth',
     backToApp: 'Back to app',
     refresh: 'Refresh',
     statTotal: 'Total users',

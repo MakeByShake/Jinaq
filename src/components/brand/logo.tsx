@@ -2,7 +2,7 @@ import { useId } from 'react';
 import { cn } from '@/lib/utils';
 
 /** The Jinaq mark: a "J" with a golden sprout — savings that grow. */
-export function LogoMark({ className, title = 'Jinaq' }: { className?: string; title?: string }) {
+export function LogoMark({ className, title = 'Jinaq Wallet' }: { className?: string; title?: string }) {
   const id = useId().replace(/:/g, '');
   return (
     <svg viewBox="0 0 64 64" fill="none" className={cn('h-9 w-9 shrink-0', className)} role="img" aria-label={title}>
@@ -29,7 +29,7 @@ export function Logo({ className, markClassName, showText = true }: { className?
     <span className={cn('inline-flex items-center gap-2.5', className)}>
       <LogoMark className={markClassName} />
       {showText && (
-        <span className="font-display text-lg font-semibold tracking-tight lowercase">jinaq</span>
+        <span className="font-display text-lg font-semibold tracking-tight lowercase whitespace-nowrap">jinaq<span className="ml-[0.28em] font-medium text-primary">wallet</span></span>
       )}
     </span>
   );

@@ -78,7 +78,7 @@ function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/80 backdrop-blur-xl safe-top">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-2 px-4 sm:px-6">
-        <Link href="/" aria-label="Jinaq" className="shrink-0 rounded-xl">
+        <Link href="/" aria-label="Jinaq Wallet" className="shrink-0 rounded-xl">
           <Logo markClassName="h-8 w-8" />
         </Link>
 
