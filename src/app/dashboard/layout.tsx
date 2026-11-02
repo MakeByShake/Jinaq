@@ -11,7 +11,8 @@ import { MobileHeader } from '@/components/layout/mobile-header';
 import { QuickAddSheet } from '@/components/app/quick-add';
 import { Onboarding } from '@/components/app/onboarding';
 import { SplashScreen } from '@/components/app/splash';
-import { ensureDefaultCategories } from '@/lib/actions';
+import { ensureCashAccount, ensureDefaultCategories } from '@/lib/actions';
+import { useT } from '@/i18n';
 
 /** Opens quick add from PWA shortcuts (?add=expense) and the "N" key. */
 function QuickAddTriggers() {
@@ -49,7 +50,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isLoading = useAuthStore((s) => s.isLoading);
   const loaded = useData((s) => s.loaded);
   const categoriesCount = useData((s) => s.categories.length);
+  const hasCash = useData((s) => s.accounts.some((a) => a.type === 'cash'));
   const router = useRouter();
+  const t = useT();
 
   useEffect(() => {
     if (!isLoading && !user) router.replace('/login');
@@ -59,6 +62,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (loaded && user?.onboarded && categoriesCount === 0) ensureDefaultCategories();
   }, [loaded, user?.onboarded, categoriesCount]);
+
+  // Every user has a Cash account by default.
+  useEffect(() => {
+    if (loaded && user?.onboarded && !hasCash) ensureCashAccount(t('enums.defaultCash'));
+  }, [loaded, user?.onboarded, hasCash, t]);
 
   if (isLoading || !user || !loaded) return <SplashScreen />;
   if (!user.onboarded) return <Onboarding />;

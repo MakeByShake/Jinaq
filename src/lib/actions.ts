@@ -6,9 +6,10 @@ import {
 import { auth, db } from './firebase';
 import { nextOccurrence, todayISO } from './dates';
 import {
-  buildDefaultAccounts, buildDefaultCategories, DEBT_EXPENSE_CATEGORY_ID, DEBT_INCOME_CATEGORY_ID,
+  buildDefaultAccounts, type StartBank, buildDefaultCategories, DEBT_EXPENSE_CATEGORY_ID, DEBT_INCOME_CATEGORY_ID,
   SAVINGS_CATEGORY_ID,
 } from './defaults';
+import { getBank } from './banks';
 import type {
   Account, Budget, Category, Debt, Goal, Plan, Recurring, Template, Transaction,
 } from './types';
@@ -173,16 +174,26 @@ export function savePlan(plan: Plan) {
 
 // ─── Seeding & reset ─────────────────────────────────────────────────────────
 
-/** Creates default categories (idempotent) and starting accounts. */
-export async function seedUserData(opts: { cardName: string; cashName: string; card: number; cash: number }) {
+/** Creates default categories (idempotent) and starting accounts (cash + picked banks). */
+export async function seedUserData(opts: { cashName: string; cash: number; banks: StartBank[] }) {
   const b = writeBatch(db);
   const existing = useData.getState().categories;
   if (existing.length === 0) buildDefaultCategories().forEach((c) => batchPut(b, 'categories', c));
   if (useData.getState().accounts.length === 0) {
-    buildDefaultAccounts(opts.cardName, opts.cashName, { card: opts.card, cash: opts.cash })
+    buildDefaultAccounts(opts.cashName, opts.cash, opts.banks, (id) => getBank(id)?.colors[0] ?? '#3B82F6')
       .forEach((a) => batchPut(b, 'accounts', a));
   }
   await b.commit();
+}
+
+/** Every user keeps a "Cash" account — recreate it if it is missing. */
+export function ensureCashAccount(cashName: string) {
+  const accounts = useData.getState().accounts;
+  if (accounts.some((a) => a.type === 'cash')) return;
+  put<Account>('accounts', {
+    id: 'acc-cash', name: cashName, type: 'cash', icon: 'cash', color: '#10B981', initialBalance: 0,
+    order: -1, createdAt: new Date().toISOString(),
+  });
 }
 
 /** Ensures built-in categories exist (for accounts that skipped onboarding). */

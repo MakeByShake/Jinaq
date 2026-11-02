@@ -8,10 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ResponsiveSheet } from './sheet';
 import { Segmented } from './ui';
-import { IconBubble, DynamicIcon } from '@/lib/icons';
+import { IconBubble } from '@/lib/icons';
+import { AccountPicker } from './account-picker';
 import { useQuickAdd } from '@/stores/ui-store';
 import { useData } from '@/stores/data-store';
-import { useAccounts, useBalances, useCategories } from '@/hooks/use-finance';
+import { useAccounts, useCategories } from '@/hooks/use-finance';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { evalAmount, useMoney } from '@/lib/format';
 import { toDay, todayISO } from '@/lib/dates';
@@ -30,7 +31,6 @@ export function QuickAddSheet() {
   const isMobile = useIsMobile();
   const { byKind, label } = useCategories();
   const { active: accounts } = useAccounts();
-  const { balances } = useBalances();
   const transactions = useData((s) => s.transactions);
   const templates = useData((s) => s.templates);
 
@@ -134,31 +134,6 @@ export function QuickAddSheet() {
   const title = editing ? t('tx.editTitle') : kind === 'income' ? t('tx.newIncome') : kind === 'transfer' ? t('tx.newTransfer') : t('tx.newExpense');
   const yesterday = toDay(addDays(new Date(), -1));
   const accentText = kind === 'income' ? 'text-income' : kind === 'expense' ? 'text-expense' : 'text-foreground';
-
-  const accountChips = (value: string | undefined, onChange: (id: string) => void, exclude?: string) => (
-    <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
-      {accounts.filter((a) => a.id !== exclude).map((a) => {
-        const active = value === a.id;
-        return (
-          <button
-            key={a.id}
-            type="button"
-            onClick={() => onChange(a.id)}
-            className={cn(
-              'flex shrink-0 items-center gap-2 rounded-2xl border px-3 py-2 text-left transition-colors',
-              active ? 'border-primary bg-accent' : 'border-border hover:bg-muted',
-            )}
-          >
-            <DynamicIcon name={a.icon} className="h-4 w-4" style={{ color: a.color }} />
-            <span className="text-xs leading-tight">
-              <span className="block font-semibold">{a.name}</span>
-              <span className="block text-muted-foreground tabular">{fmt(balances[a.id] ?? 0, { compact: true })}</span>
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
 
   return (
     <ResponsiveSheet
@@ -280,12 +255,12 @@ export function QuickAddSheet() {
         {/* Accounts */}
         <div className="space-y-1.5">
           <p className="text-xs font-semibold text-muted-foreground">{kind === 'transfer' ? t('tx.from') : t('common.account')}</p>
-          {accountChips(accountId, setAccountId)}
+          <AccountPicker value={accountId} onChange={(id) => id && setAccountId(id)} />
         </div>
         {kind === 'transfer' && (
           <div className="space-y-1.5">
             <p className="text-xs font-semibold text-muted-foreground">{t('tx.to')}</p>
-            {accountChips(toAccountId, setToAccountId, accountId)}
+            <AccountPicker value={toAccountId} onChange={(id) => id && setToAccountId(id)} exclude={accountId} />
           </div>
         )}
 

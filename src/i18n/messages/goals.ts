@@ -1,5 +1,7 @@
 export const goals = {
   ru: {
+    paidFrom: 'С какого счёта оплатили?',
+    paidFromNone: 'Не записывать расход',
     title: 'Цели и желания',
     subtitle: 'Копите на то, что действительно важно',
     add: 'Новая цель',
@@ -103,6 +105,8 @@ export const goals = {
     filterAll: 'Все',
   },
   kk: {
+    paidFrom: 'Қай шоттан төледіңіз?',
+    paidFromNone: 'Шығысты жазбау',
     title: 'Мақсаттар мен тілектер',
     subtitle: 'Шын маңызды нәрсеге жинаңыз',
     add: 'Жаңа мақсат',
@@ -198,6 +202,8 @@ export const goals = {
     filterAll: 'Барлығы',
   },
   en: {
+    paidFrom: 'Which account did you pay from?',
+    paidFromNone: 'Don’t record an expense',
     title: 'Goals & wishlist',
     subtitle: 'Save up for what really matters',
     add: 'New goal',

@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
       { source: "/dashboard/history", destination: "/dashboard/transactions", permanent: true },
       { source: "/dashboard/wishlist", destination: "/dashboard/goals", permanent: true },
       { source: "/dashboard/calculations", destination: "/dashboard/planner", permanent: true },
-      { source: "/dashboard/profile", destination: "/dashboard/settings", permanent: true },
+      { source: "/dashboard/settings", destination: "/dashboard/profile", permanent: true },
     ];
   },
   async headers() {

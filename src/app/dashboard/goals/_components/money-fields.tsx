@@ -6,10 +6,7 @@
  * optional account chips. Candidates for moving into src/components/app.
  */
 
-import { Ban } from 'lucide-react';
-import { useBalances, useAccounts } from '@/hooks/use-finance';
 import { evalAmount, useMoney } from '@/lib/format';
-import { DynamicIcon } from '@/lib/icons';
 import { useData } from '@/stores/data-store';
 import type { Transaction } from '@/lib/types';
 import { cn } from '@/lib/utils';
@@ -74,52 +71,8 @@ export function QuickChips({ chips, onPick, current }: {
   );
 }
 
-/** Account picker. With `noneLabel`, "no account" is offered as a choice (value = undefined). */
-export function AccountChips({ value, onChange, noneLabel }: {
-  value?: string; onChange: (id: string | undefined) => void; noneLabel?: string;
-}) {
-  const fmt = useMoney();
-  const { active } = useAccounts();
-  const { balances } = useBalances();
-  return (
-    <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
-      {noneLabel && (
-      <button
-        type="button"
-        onClick={() => onChange(undefined)}
-        aria-pressed={!value}
-        className={cn(
-          'flex min-h-11 shrink-0 items-center gap-2 rounded-2xl border px-3 py-2 text-xs font-semibold transition-colors',
-          !value ? 'border-primary bg-accent' : 'border-border text-muted-foreground hover:bg-muted',
-        )}
-      >
-        <Ban className="h-4 w-4" /> {noneLabel}
-      </button>
-      )}
-      {active.map((a) => {
-        const on = value === a.id;
-        return (
-          <button
-            key={a.id}
-            type="button"
-            onClick={() => onChange(a.id)}
-            aria-pressed={on}
-            className={cn(
-              'flex min-h-11 shrink-0 items-center gap-2 rounded-2xl border px-3 py-2 text-left transition-colors',
-              on ? 'border-primary bg-accent' : 'border-border hover:bg-muted',
-            )}
-          >
-            <DynamicIcon name={a.icon} className="h-4 w-4" style={{ color: a.color }} />
-            <span className="text-xs leading-tight">
-              <span className="block font-semibold">{a.name}</span>
-              <span className="block text-muted-foreground tabular">{fmt(balances[a.id] ?? 0, { compact: true })}</span>
-            </span>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
+/** Shared account chooser (bank logos, balances). Re-exported under the old name. */
+export { AccountPicker as AccountChips } from '@/components/app/account-picker';
 
 /**
  * Finds a transaction created by an action helper that doesn't return it

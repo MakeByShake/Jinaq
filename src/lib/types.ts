@@ -25,7 +25,7 @@ export interface AppUser {
 }
 
 // ─── Accounts ────────────────────────────────────────────────────────────────
-export type AccountType = 'card' | 'cash' | 'savings' | 'deposit' | 'other';
+export type AccountType = 'card' | 'cash' | 'savings' | 'deposit' | 'credit' | 'other';
 
 export interface Account {
   id: string;
@@ -38,6 +38,10 @@ export interface Account {
   archived?: boolean;
   /** Excluded from the "spendable" balance (e.g. a deposit). */
   excludeFromTotal?: boolean;
+  /** Bank from src/lib/banks.ts (logo + card colors). */
+  bankId?: string;
+  /** Annual interest rate, % (deposits / credits). */
+  rate?: number;
   createdAt: string;
 }
 

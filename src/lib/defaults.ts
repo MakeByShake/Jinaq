@@ -48,11 +48,21 @@ export function buildDefaultCategories(): Category[] {
   }));
 }
 
-export function buildDefaultAccounts(cardName: string, cashName: string, balances: { card: number; cash: number }): Account[] {
+export interface StartBank {
+  bankId: string;
+  name: string;
+  balance: number;
+}
+
+/** Cash is always created; each picked bank becomes a card account with its brand color. */
+export function buildDefaultAccounts(cashName: string, cash: number, banks: StartBank[], bankColor: (id: string) => string): Account[] {
   const now = new Date().toISOString();
   return [
-    { id: 'acc-card', name: cardName, type: 'card', icon: 'card', color: '#EF4444', initialBalance: balances.card, order: 0, createdAt: now },
-    { id: 'acc-cash', name: cashName, type: 'cash', icon: 'cash', color: '#10B981', initialBalance: balances.cash, order: 1, createdAt: now },
+    { id: 'acc-cash', name: cashName, type: 'cash', icon: 'cash', color: '#10B981', initialBalance: cash, order: 0, createdAt: now },
+    ...banks.map<Account>((b, i) => ({
+      id: `acc-${b.bankId}`, name: b.name, type: 'card', icon: 'card', color: bankColor(b.bankId), bankId: b.bankId,
+      initialBalance: b.balance, order: i + 1, createdAt: now,
+    })),
   ];
 }
 

@@ -1,5 +1,9 @@
 export const debts = {
   ru: {
+    accountLend: 'Откуда вы дали деньги?',
+    accountBorrow: 'Куда пришли деньги?',
+    accountNone: 'Не учитывать',
+    accountNoneHint: 'Баланс счетов не изменится — долг просто запишется.',
     title: 'Долги',
     subtitle: 'Кто кому и сколько должен',
     add: 'Новый долг',
@@ -78,6 +82,10 @@ export const debts = {
     tabEmpty_closed: 'Здесь появятся закрытые долги',
   },
   kk: {
+    accountLend: 'Ақшаны қай шоттан бердіңіз?',
+    accountBorrow: 'Ақша қай шотқа түсті?',
+    accountNone: 'Есепке алмау',
+    accountNoneHint: 'Шоттар балансы өзгермейді — қарыз жай ғана жазылады.',
     title: 'Қарыздар',
     subtitle: 'Кім кімге қанша қарыз',
     add: 'Жаңа қарыз',
@@ -152,6 +160,10 @@ export const debts = {
     tabEmpty_closed: 'Жабылған қарыздар осында шығады',
   },
   en: {
+    accountLend: 'Which account did the money come from?',
+    accountBorrow: 'Which account did the money go to?',
+    accountNone: 'Don’t track',
+    accountNoneHint: 'Account balances stay the same — the debt is just recorded.',
     title: 'Debts',
     subtitle: 'Who owes whom, and how much',
     add: 'New debt',

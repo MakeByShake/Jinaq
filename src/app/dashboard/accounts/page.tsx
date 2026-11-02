@@ -3,8 +3,9 @@
 import { useMemo, useState } from 'react';
 import { addDays } from 'date-fns';
 import {
-  Archive, ArchiveRestore, ArrowDownLeft, ArrowLeftRight, ArrowUpRight, ChevronDown, Pencil, Plus, Scale,
-  Trash2, Wallet,
+  Archive, ArchiveRestore, ArrowDownLeft, ArrowLeft, ArrowLeftRight, ArrowUpRight, Banknote, ChevronDown, ChevronRight,
+  CreditCard, Landmark, Pencil, PiggyBank, Plus, Receipt, Scale, Search, Trash2, Wallet,
+  type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -21,13 +22,26 @@ import { evalAmount, useMoney } from '@/lib/format';
 import { monthRange, inRange, toDay, todayISO } from '@/lib/dates';
 import { addTransaction, deleteAccount, deleteTransaction, newId, saveAccount } from '@/lib/actions';
 import { DEBT_EXPENSE_CATEGORY_ID, DEBT_INCOME_CATEGORY_ID } from '@/lib/defaults';
-import { DynamicIcon, PALETTE } from '@/lib/icons';
+import { PALETTE } from '@/lib/icons';
+import { BANKS, getBank, suggestName, type Bank } from '@/lib/banks';
+import { AccountAvatar, accountBackground } from '@/components/app/account-picker';
 import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
 import type { Account, AccountType, Transaction } from '@/lib/types';
 
-const TYPES: AccountType[] = ['card', 'cash', 'savings', 'deposit', 'other'];
-const TYPE_ICON: Record<AccountType, string> = { card: 'card', cash: 'cash', savings: 'piggy', deposit: 'bank', other: 'wallet' };
+const TYPES: AccountType[] = ['card', 'cash', 'deposit', 'savings', 'credit', 'other'];
+const TYPE_ICON: Record<AccountType, string> = { card: 'card', cash: 'cash', savings: 'piggy', deposit: 'bank', credit: 'receipt', other: 'wallet' };
+const TYPE_LUCIDE: Record<AccountType, LucideIcon> = { card: CreditCard, cash: Banknote, savings: PiggyBank, deposit: Landmark, credit: Receipt, other: Wallet };
+/** Types that belong to a bank (show the bank picker). */
+const BANK_TYPES: AccountType[] = ['card', 'savings', 'deposit', 'credit'];
+/** Page sections, in display order. */
+const SECTIONS: { key: string; types: AccountType[] }[] = [
+  { key: 'card', types: ['card'] },
+  { key: 'cash', types: ['cash'] },
+  { key: 'savings', types: ['savings', 'deposit'] },
+  { key: 'credit', types: ['credit'] },
+  { key: 'other', types: ['other'] },
+];
 
 /** Signed effect of a transaction on one account. */
 function delta(tx: Transaction, accountId: string): number {
@@ -82,12 +96,6 @@ function Sparkline({ values, className }: { values: number[]; className?: string
   );
 }
 
-function cardBackground(color: string) {
-  return {
-    backgroundImage: `radial-gradient(120% 140% at 100% 0%, rgb(255 255 255 / 0.22) 0%, transparent 50%), linear-gradient(135deg, ${color} 0%, color-mix(in oklab, ${color} 55%, #0b1f17) 100%)`,
-  };
-}
-
 // ─── Account card ────────────────────────────────────────────────────────────
 
 function AccountCard({ info, onOpen }: { info: AccountInfo; onOpen: () => void }) {
@@ -103,18 +111,21 @@ function AccountCard({ info, onOpen }: { info: AccountInfo; onOpen: () => void }
         'relative flex min-h-44 w-full flex-col overflow-hidden rounded-3xl p-4 text-left text-white shadow-lg shadow-black/10 transition-transform active:scale-[0.98] sm:p-5',
         a.archived && 'opacity-60 grayscale-[40%]',
       )}
-      style={cardBackground(a.color)}
+      style={accountBackground(a)}
     >
       <div className="pointer-events-none absolute -right-8 -bottom-12 h-36 w-36 rounded-full bg-white/10 blur-xl" />
       <div className="relative flex items-start gap-3">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm">
-          <DynamicIcon name={a.icon} className="h-5 w-5" />
-        </span>
+        <AccountAvatar account={a} size="md" onDark />
         <div className="min-w-0 flex-1">
           <p className="truncate font-bold leading-tight">{a.name}</p>
-          <p className="truncate text-xs text-white/75">{t(`enums.acc_${a.type}`)}</p>
+          <p className="truncate text-xs text-white/75">
+            {[getBank(a.bankId)?.name, t(`enums.acc_${a.type}`)].filter(Boolean).join(' · ')}
+            {a.rate ? ` · ${a.rate}%` : ''}
+          </p>
         </div>
-        {a.excludeFromTotal && (
+        {a.type === 'credit' ? (
+          <span className="shrink-0 rounded-full bg-black/25 px-2 py-0.5 text-[10px] font-semibold">{t('acc.creditBadge')}</span>
+        ) : a.excludeFromTotal && (
           <span className="shrink-0 rounded-full bg-black/20 px-2 py-0.5 text-[10px] font-semibold">{t('acc.excludedBadge')}</span>
         )}
       </div>
@@ -133,32 +144,122 @@ function AccountCard({ info, onOpen }: { info: AccountInfo; onOpen: () => void }
 
 // ─── Create / edit sheet ─────────────────────────────────────────────────────
 
+type Step = 'type' | 'bank' | 'details';
+
+function TypeStep({ onPick }: { onPick: (t: AccountType) => void }) {
+  const t = useT();
+  return (
+    <div className="grid gap-2">
+      {TYPES.map((v) => {
+        const Icon = TYPE_LUCIDE[v];
+        return (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onPick(v)}
+            className="flex min-h-16 items-center gap-3 rounded-2xl border border-border px-3 py-2.5 text-left transition-colors hover:bg-muted active:scale-[0.99]"
+          >
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-foreground"><Icon className="h-5 w-5" /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block font-semibold">{t(`acc.t_${v}`)}</span>
+              <span className="block truncate text-xs text-muted-foreground">{t(`acc.t_${v}_d`)}</span>
+            </span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function BankStep({ onPick }: { onPick: (b: Bank | null) => void }) {
+  const t = useT();
+  const [q, setQ] = useState('');
+  const list = BANKS.filter((b) => b.name.toLowerCase().includes(q.trim().toLowerCase()));
+  return (
+    <div className="space-y-3">
+      <div className="relative">
+        <Search className="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={t('acc.searchBank')} className="h-11 rounded-xl pl-9" />
+      </div>
+      <div className="grid grid-cols-3 gap-2 min-[420px]:grid-cols-4">
+        {list.map((b) => (
+          <button
+            key={b.id}
+            type="button"
+            onClick={() => onPick(b)}
+            className="flex flex-col items-center gap-1.5 rounded-2xl border border-border px-1 py-3 text-center transition-colors hover:bg-muted active:scale-[0.98]"
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={b.logo} alt="" className="h-11 w-11 rounded-xl bg-white object-contain p-0.5 shadow-sm" />
+            <span className="line-clamp-2 text-[11px] font-semibold leading-tight">{b.short ?? b.name}</span>
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={() => onPick(null)}
+          className="flex flex-col items-center gap-1.5 rounded-2xl border border-dashed border-border px-1 py-3 text-center transition-colors hover:bg-muted"
+        >
+          <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-muted"><Landmark className="h-5 w-5 text-muted-foreground" /></span>
+          <span className="text-[11px] font-semibold leading-tight">{t('acc.otherBank')}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AccountForm({ open, onOpenChange, account, nextOrder }: {
   open: boolean; onOpenChange: (v: boolean) => void; account: Account | null; nextOrder: number;
 }) {
   const t = useT();
-  const [name, setName] = useState(account?.name ?? '');
+  const fmt = useMoney();
+  const isCredit0 = account?.type === 'credit';
+  const [step, setStep] = useState<Step>(account ? 'details' : 'type');
   const [type, setType] = useState<AccountType>(account?.type ?? 'card');
+  const [bankId, setBankId] = useState<string | undefined>(account?.bankId);
+  const [name, setName] = useState(account?.name ?? '');
   const [icon, setIcon] = useState(account?.icon ?? 'card');
   const [color, setColor] = useState(account?.color ?? PALETTE[2]);
-  const [initial, setInitial] = useState(account ? String(account.initialBalance ?? 0) : '');
+  // Credits are entered as a positive "amount owed" and stored as a negative balance.
+  const [initial, setInitial] = useState(account ? String(Math.abs(account.initialBalance ?? 0) * (isCredit0 ? 1 : Math.sign(account.initialBalance || 1))) : '');
+  const [rate, setRate] = useState(account?.rate ? String(account.rate) : '');
   const [exclude, setExclude] = useState(account?.excludeFromTotal ?? false);
+  const bank = getBank(bankId);
 
   const pickType = (v: AccountType) => {
-    // Follow the type with a matching icon / flag unless the user changed them.
-    if (icon === TYPE_ICON[type]) setIcon(TYPE_ICON[v]);
-    if (!account) setExclude(v === 'deposit');
     setType(v);
+    setIcon(TYPE_ICON[v]);
+    setExclude(v === 'deposit' || v === 'savings' || v === 'credit');
+    if (BANK_TYPES.includes(v)) setStep('bank');
+    else {
+      setBankId(undefined);
+      setName(v === 'cash' ? t('enums.defaultCash') : '');
+      setStep('details');
+    }
+  };
+
+  const pickBank = (b: Bank | null) => {
+    setBankId(b?.id);
+    if (b) {
+      // Keep a name the user typed; otherwise suggest the bank's product name.
+      if (!name.trim() || BANKS.some((x) => Object.values(x.products).flat().includes(name))) setName(suggestName(b, type));
+      setColor(b.colors[0]);
+    }
+    setStep('details');
   };
 
   const submit = () => {
     if (!name.trim()) return toast.error(t('acc.nameRequired'));
-    const initialBalance = initial.trim() ? evalAmount(initial) : 0;
+    let initialBalance = initial.trim() ? evalAmount(initial) : 0;
     if (!Number.isFinite(initialBalance)) return toast.error(t('acc.invalidNumber'));
+    if (type === 'credit') initialBalance = -Math.abs(initialBalance);
+    const r = rate.trim() ? Number(rate.replace(',', '.')) : undefined;
     const data: Account = {
       id: account?.id ?? newId('acc'),
       name: name.trim(),
       type, icon, color, initialBalance,
+      bankId,
+      rate: r && Number.isFinite(r) && r > 0 ? r : undefined,
       order: account?.order ?? nextOrder,
       archived: account?.archived,
       excludeFromTotal: exclude || undefined,
@@ -169,69 +270,86 @@ function AccountForm({ open, onOpenChange, account, nextOrder }: {
     onOpenChange(false);
   };
 
+  const back = step === 'details' && !account ? (BANK_TYPES.includes(type) ? 'bank' : 'type') : step === 'bank' ? (account ? 'details' : 'type') : null;
+  const title = step === 'type' ? t('acc.whatAdd') : step === 'bank' ? t('acc.chooseBank') : account ? t('acc.editTitle') : t(`acc.t_${type}`);
+  const amount = initial.trim() ? evalAmount(initial) : 0;
+  const yearly = Number(rate.replace(',', '.')) > 0 && Number.isFinite(amount) ? (Math.abs(amount) * Number(rate.replace(',', '.'))) / 100 : 0;
+
   return (
     <ResponsiveSheet
       open={open}
       onOpenChange={onOpenChange}
-      title={account ? t('acc.editTitle') : t('acc.newTitle')}
-      footer={<Button className="h-12 w-full rounded-2xl text-base font-bold" onClick={submit}>{t('common.save')}</Button>}
+      title={
+        <span className="flex items-center gap-2">
+          {back && (
+            <button type="button" onClick={() => setStep(back)} aria-label={t('common.back')} className="-ml-1 flex h-8 w-8 items-center justify-center rounded-lg hover:bg-muted">
+              <ArrowLeft className="h-4 w-4" />
+            </button>
+          )}
+          {title}
+        </span>
+      }
+      footer={step === 'details' ? <Button className="h-12 w-full rounded-2xl text-base font-bold" onClick={submit}>{t('common.save')}</Button> : undefined}
     >
-      <div className="space-y-4">
-        {/* Live preview */}
-        <div className="flex items-center gap-3 rounded-2xl p-3 text-white" style={cardBackground(color)}>
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20"><DynamicIcon name={icon} className="h-5 w-5" /></span>
-          <div className="min-w-0">
-            <p className="truncate font-bold">{name || t('acc.namePlaceholder')}</p>
-            <p className="text-xs text-white/75">{t(`enums.acc_${type}`)}</p>
-          </div>
-        </div>
-
-        <Field label={t('acc.name')}>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('acc.namePlaceholder')} className="h-11 rounded-xl" maxLength={40} />
-        </Field>
-
-        <div className="space-y-1.5">
-          <p className="text-[13px] font-semibold text-foreground/80">{t('acc.type')}</p>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t('acc.type')}>
-            {TYPES.map((v) => (
-              <button
-                key={v}
-                type="button"
-                role="radio"
-                aria-checked={type === v}
-                onClick={() => pickType(v)}
-                className={cn(
-                  'h-10 rounded-full border px-4 text-sm font-semibold transition-colors',
-                  type === v ? 'border-primary bg-accent text-accent-foreground' : 'border-border text-muted-foreground hover:bg-muted',
-                )}
-              >
-                {t(`enums.acc_${v}`)}
+      {step === 'type' && <TypeStep onPick={pickType} />}
+      {step === 'bank' && <BankStep onPick={pickBank} />}
+      {step === 'details' && (
+        <div className="space-y-4">
+          {/* Live preview */}
+          <div className="flex items-center gap-3 rounded-2xl p-3 text-white" style={accountBackground({ color, bankId })}>
+            <AccountAvatar account={{ icon, color, bankId }} size="md" onDark />
+            <div className="min-w-0 flex-1">
+              <p className="truncate font-bold">{name || t('acc.namePlaceholder')}</p>
+              <p className="truncate text-xs text-white/75">{[bank?.name, t(`enums.acc_${type}`)].filter(Boolean).join(' · ')}</p>
+            </div>
+            {BANK_TYPES.includes(type) && (
+              <button type="button" onClick={() => setStep('bank')} className="shrink-0 rounded-lg bg-white/20 px-2.5 py-1 text-xs font-semibold hover:bg-white/30">
+                {t('acc.changeBank')}
               </button>
-            ))}
+            )}
           </div>
-        </div>
 
-        <Field label={t('acc.initialBalance')} hint={t('acc.initialBalanceHint')}>
-          <Input value={initial} onChange={(e) => setInitial(e.target.value)} inputMode="decimal" placeholder="0" className="h-11 rounded-xl tabular" />
-        </Field>
+          <Field label={t('acc.name')}>
+            <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('acc.namePlaceholder')} className="h-11 rounded-xl" maxLength={40} />
+          </Field>
 
-        <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-muted/60 p-3">
-          <span className="min-w-0">
-            <span className="block text-sm font-semibold">{t('acc.exclude')}</span>
-            <span className="block text-xs text-muted-foreground">{t('acc.excludeHint')}</span>
-          </span>
-          <Switch checked={exclude} onCheckedChange={setExclude} aria-label={t('acc.exclude')} />
-        </label>
+          <Field
+            label={type === 'credit' ? t('acc.creditDebt') : t('acc.initialBalance')}
+            hint={type === 'credit' ? t('acc.creditDebtHint') : t('acc.initialBalanceHint')}
+          >
+            <Input value={initial} onChange={(e) => setInitial(e.target.value)} inputMode="decimal" placeholder="0" className="h-11 rounded-xl tabular" />
+          </Field>
 
-        <div className="space-y-1.5">
-          <p className="text-[13px] font-semibold text-foreground/80">{t('common.icon')}</p>
-          <IconPicker value={icon} onChange={setIcon} color={color} />
+          {(type === 'deposit' || type === 'savings' || type === 'credit') && (
+            <Field label={t('acc.rate')} hint={yearly > 0 ? t('acc.perYear', { amount: fmt(Math.round(yearly)) }) : t('acc.rateHint')}>
+              <Input value={rate} onChange={(e) => setRate(e.target.value)} inputMode="decimal" placeholder="14" className="h-11 rounded-xl tabular" />
+            </Field>
+          )}
+
+          {type !== 'credit' && (
+            <label className="flex cursor-pointer items-center justify-between gap-3 rounded-2xl bg-muted/60 p-3">
+              <span className="min-w-0">
+                <span className="block text-sm font-semibold">{t('acc.exclude')}</span>
+                <span className="block text-xs text-muted-foreground">{t('acc.excludeHint')}</span>
+              </span>
+              <Switch checked={exclude} onCheckedChange={setExclude} aria-label={t('acc.exclude')} />
+            </label>
+          )}
+
+          {!bank && (
+            <>
+              <div className="space-y-1.5">
+                <p className="text-[13px] font-semibold text-foreground/80">{t('common.icon')}</p>
+                <IconPicker value={icon} onChange={setIcon} color={color} />
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-[13px] font-semibold text-foreground/80">{t('common.color')}</p>
+                <ColorPicker value={color} onChange={setColor} />
+              </div>
+            </>
+          )}
         </div>
-        <div className="space-y-1.5">
-          <p className="text-[13px] font-semibold text-foreground/80">{t('common.color')}</p>
-          <ColorPicker value={color} onChange={setColor} />
-        </div>
-      </div>
+      )}
     </ResponsiveSheet>
   );
 }
@@ -343,9 +461,9 @@ function AccountDetail({ info, onClose, onEdit }: { info: AccountInfo; onClose: 
     <>
       <ResponsiveSheet open onOpenChange={(v) => !v && onClose()} title={a.name} description={t(`enums.acc_${a.type}`)}>
         <div className="space-y-4">
-          <div className="relative overflow-hidden rounded-3xl p-4 text-white" style={cardBackground(a.color)}>
+          <div className="relative overflow-hidden rounded-3xl p-4 text-white" style={accountBackground(a)}>
             <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/20"><DynamicIcon name={a.icon} className="h-5 w-5" /></span>
+              <AccountAvatar account={a} size="md" onDark />
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-white/75">{t('acc.balance')}</p>
                 <p className="truncate font-display fit-lg font-semibold tabular">{fmt(balance)}</p>
@@ -432,6 +550,8 @@ export default function AccountsPage() {
   }, [accounts, transactions, balances]);
 
   const active = infos.filter((i) => !i.account.archived);
+  const savingsSum = active.filter((i) => i.account.excludeFromTotal && i.account.type !== 'credit').reduce((a, i) => a + i.balance, 0);
+  const creditSum = active.filter((i) => i.account.type === 'credit').reduce((a, i) => a + i.balance, 0);
   const archived = infos.filter((i) => i.account.archived);
   const detail = infos.find((i) => i.account.id === detailId) ?? null;
   const nextOrder = accounts.reduce((m, a) => Math.max(m, a.order), -1) + 1;
@@ -470,8 +590,14 @@ export default function AccountsPage() {
             </div>
             <div className="rounded-2xl bg-white/12 p-3 backdrop-blur-sm">
               <p className="truncate text-xs font-medium text-white/75">{t('acc.reserved')}</p>
-              <p className="mt-0.5 truncate font-display fit-md font-semibold tabular">{fmt(total - spendable)}</p>
+              <p className="mt-0.5 truncate font-display fit-md font-semibold tabular">{fmt(savingsSum)}</p>
             </div>
+            {creditSum < 0 && (
+              <div className="rounded-2xl bg-black/20 p-3 backdrop-blur-sm min-[340px]:col-span-2">
+                <p className="truncate text-xs font-medium text-white/75">{t('acc.debtsTotal')}</p>
+                <p className="mt-0.5 truncate font-display fit-md font-semibold tabular text-rose-100">{fmt(creditSum)}</p>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -486,12 +612,27 @@ export default function AccountsPage() {
           />
         </Panel>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4">
-          {active.map((info) => <AccountCard key={info.account.id} info={info} onOpen={() => setDetailId(info.account.id)} />)}
+        <div className="space-y-6">
+          {SECTIONS.map((sec) => {
+            const items = active.filter((i) => sec.types.includes(i.account.type));
+            if (items.length === 0) return null;
+            const sum = items.reduce((acc, i) => acc + i.balance, 0);
+            return (
+              <section key={sec.key}>
+                <div className="mb-2 flex items-baseline justify-between px-1">
+                  <h2 className="text-sm font-bold uppercase tracking-wide text-muted-foreground">{t(`acc.sec_${sec.key}`)}</h2>
+                  <Money value={sum} kind={sum < 0 ? 'auto' : undefined} className="text-sm font-bold" />
+                </div>
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 lg:gap-4">
+                  {items.map((info) => <AccountCard key={info.account.id} info={info} onOpen={() => setDetailId(info.account.id)} />)}
+                </div>
+              </section>
+            );
+          })}
           <button
             type="button"
             onClick={() => openForm(null)}
-            className="flex min-h-44 flex-col items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-border text-sm font-semibold text-muted-foreground transition-colors hover:border-primary/50 hover:bg-accent/40 hover:text-foreground"
+            className="flex min-h-24 w-full items-center justify-center gap-2 rounded-3xl border-2 border-dashed border-border text-sm font-semibold text-muted-foreground transition-colors hover:border-primary/50 hover:bg-accent/40 hover:text-foreground"
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-muted"><Plus className="h-5 w-5" /></span>
             {t('acc.add')}

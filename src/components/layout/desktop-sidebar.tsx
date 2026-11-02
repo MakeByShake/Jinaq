@@ -129,7 +129,7 @@ export function DesktopSidebar() {
           </Button>
         )}
         <div className="flex flex-col items-center gap-2 rounded-xl lg:flex-row lg:gap-3 lg:p-2">
-          <Link href="/dashboard/settings" className="flex min-w-0 flex-1 items-center gap-3" title={user?.name}>
+          <Link href="/dashboard/profile" className="flex min-w-0 flex-1 items-center gap-3" title={user?.name}>
             <UserAvatar className="h-9 w-9" />
             <div className="hidden min-w-0 lg:block">
               <p className="truncate text-sm font-bold">{user?.name}</p>

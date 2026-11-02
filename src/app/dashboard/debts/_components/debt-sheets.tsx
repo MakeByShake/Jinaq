@@ -5,7 +5,6 @@ import { Check, Copy, HandCoins, MessageCircle, Send, Share2, Trash2, X } from '
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { ResponsiveSheet } from '@/components/app/sheet';
 import { Field, Segmented } from '@/components/app/ui';
@@ -47,8 +46,8 @@ export function DebtFormSheet({ open, onOpenChange, debt, direction: initialDire
   const [expr, setExpr] = useState(debt ? String(debt.amount) : '');
   const [dueDate, setDueDate] = useState(debt?.dueDate ?? '');
   const [note, setNote] = useState(debt?.note ?? '');
-  const [viaAccount, setViaAccount] = useState(false);
-  const [accountId, setAccountId] = useState<string | undefined>(accounts[0]?.id);
+  // undefined = money did not go through any account ("don't track").
+  const [accountId, setAccountId] = useState<string | undefined>(undefined);
 
   // Names used before, most recent first; filtered by what is typed.
   const suggestions = useMemo(() => {
@@ -82,7 +81,6 @@ export function DebtFormSheet({ open, onOpenChange, debt, direction: initialDire
       return;
     }
 
-    if (viaAccount && !accountId) return toast.error(t('tx.pickAccount'));
     const created: Debt = {
       id: newId('debt'), personName: name, direction, amount, paid: 0, payments: [],
       dueDate: dueDate || undefined, note: note.trim() || undefined, settled: false,
@@ -90,7 +88,7 @@ export function DebtFormSheet({ open, onOpenChange, debt, direction: initialDire
     };
     saveDebt(created);
     // Lending money out = expense from the account; borrowing = income.
-    const tx = viaAccount && accountId
+    const tx = accountId
       ? addTransaction({
         kind: direction === 'owed_to_me' ? 'expense' : 'income',
         amount,
@@ -187,19 +185,16 @@ export function DebtFormSheet({ open, onOpenChange, debt, direction: initialDire
         </Field>
 
         {!debt && accounts.length > 0 && (
-          <div className="space-y-2 rounded-2xl bg-muted/60 p-3">
-            <label className="flex min-h-10 items-center justify-between gap-3">
-              <span className="text-sm font-semibold">{t('debts.viaAccount')}</span>
-              <Switch checked={viaAccount} onCheckedChange={setViaAccount} />
-            </label>
-            {viaAccount && (
-              <>
-                <AccountChips value={accountId} onChange={setAccountId} />
-                <p className="text-xs text-muted-foreground">
-                  {direction === 'owed_to_me' ? t('debts.viaAccountLend') : t('debts.viaAccountBorrow')}
-                </p>
-              </>
-            )}
+          <div className="space-y-2">
+            <p className="text-[13px] font-semibold text-foreground/80">
+              {direction === 'owed_to_me' ? t('debts.accountLend') : t('debts.accountBorrow')}
+            </p>
+            <AccountChips value={accountId} onChange={setAccountId} noneLabel={t('debts.accountNone')} />
+            <p className="text-xs text-muted-foreground">
+              {accountId
+                ? (direction === 'owed_to_me' ? t('debts.viaAccountLend') : t('debts.viaAccountBorrow'))
+                : t('debts.accountNoneHint')}
+            </p>
           </div>
         )}
         <button type="submit" className="hidden" aria-hidden tabIndex={-1} />

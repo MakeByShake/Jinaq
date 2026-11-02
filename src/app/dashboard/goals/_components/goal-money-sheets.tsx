@@ -4,7 +4,6 @@ import { useMemo, useState } from 'react';
 import { Check, ShoppingBag } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Switch } from '@/components/ui/switch';
 import { ResponsiveSheet } from '@/components/app/sheet';
 import { Segmented } from '@/components/app/ui';
 import { useAccounts, useCategories } from '@/hooks/use-finance';
@@ -133,9 +132,10 @@ export function PurchaseSheet({ open, onOpenChange, goal, onDone }: {
 
   // If money was already moved out of accounts for this goal, recording the purchase would double-count it.
   const alreadyDebited = useMemo(() => transactions.some((x) => x.goalId === goal.id), [transactions, goal.id]);
-  const [record, setRecord] = useState(!alreadyDebited && accounts.length > 0);
+  // Picking an account records the purchase as an expense; "don't track" just closes the goal.
+  const [accountId, setAccountId] = useState<string | undefined>(alreadyDebited ? undefined : accounts[0]?.id);
+  const record = !!accountId;
   const [expr, setExpr] = useState(String(goal.target));
-  const [accountId, setAccountId] = useState<string | undefined>(accounts[0]?.id);
   const [categoryId, setCategoryId] = useState(
     expenseCats.find((c) => c.id === DEBT_EXPENSE_CATEGORY_ID)?.id ?? expenseCats[0]?.id,
   );
@@ -143,7 +143,6 @@ export function PurchaseSheet({ open, onOpenChange, goal, onDone }: {
   function submit() {
     const amount = parseAmount(expr);
     if (record && (!Number.isFinite(amount) || amount <= 0)) return toast.error(t('common.invalidAmount'));
-    if (record && !accountId) return toast.error(t('tx.pickAccount'));
 
     const prev = goal;
     saveGoal({ ...goal, status: 'done', completedAt: new Date().toISOString() });
@@ -176,19 +175,17 @@ export function PurchaseSheet({ open, onOpenChange, goal, onDone }: {
       }
     >
       <div className="space-y-4">
-        <label className="flex min-h-12 items-center justify-between gap-3 rounded-2xl bg-muted/60 px-4 py-3">
-          <span className="text-sm font-semibold">{t('goals.recordExpense')}</span>
-          <Switch checked={record} onCheckedChange={setRecord} disabled={accounts.length === 0} />
-        </label>
+        {accounts.length > 0 && (
+          <div className="space-y-1.5">
+            <p className="text-[13px] font-semibold text-foreground/80">{t('goals.paidFrom')}</p>
+            <AccountChips value={accountId} onChange={setAccountId} noneLabel={t('goals.paidFromNone')} />
+          </div>
+        )}
         {alreadyDebited && <p className="text-xs text-muted-foreground">{t('goals.recordExpenseHint')}</p>}
 
         {record && (
           <>
             <AmountInput value={expr} onChange={setExpr} tone="expense" ariaLabel={t('common.amount')} />
-            <div className="space-y-1.5">
-              <p className="text-xs font-semibold text-muted-foreground">{t('common.account')}</p>
-              <AccountChips value={accountId} onChange={setAccountId} />
-            </div>
             <div className="space-y-1.5">
               <p className="text-xs font-semibold text-muted-foreground">{t('goals.pickCategory')}</p>
               <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">

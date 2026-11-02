@@ -232,6 +232,7 @@ export const nav = {
     accounts: 'Счета',
     planner: 'Планировщик',
     settings: 'Настройки',
+    profile: 'Профиль',
     admin: 'Админ-панель',
     add: 'Добавить',
     sectionMoney: 'Деньги',
@@ -248,6 +249,7 @@ export const nav = {
     accounts: 'Шоттар',
     planner: 'Жоспарлаушы',
     settings: 'Баптаулар',
+    profile: 'Профиль',
     admin: 'Әкімші панелі',
     add: 'Қосу',
     sectionMoney: 'Ақша',
@@ -264,6 +266,7 @@ export const nav = {
     accounts: 'Accounts',
     planner: 'Planner',
     settings: 'Settings',
+    profile: 'Profile',
     admin: 'Admin panel',
     add: 'Add',
     sectionMoney: 'Money',
@@ -306,17 +309,17 @@ export const cat = {
 
 export const enums = {
   ru: {
-    acc_card: 'Карта', acc_cash: 'Наличные', acc_savings: 'Накопительный', acc_deposit: 'Депозит', acc_other: 'Другое',
+    acc_card: 'Карта', acc_cash: 'Наличные', acc_savings: 'Накопительный', acc_deposit: 'Депозит', acc_credit: 'Кредит / рассрочка', acc_other: 'Другое',
     freq_weekly: 'Каждую неделю', freq_monthly: 'Каждый месяц', freq_yearly: 'Каждый год',
     defaultCard: 'Kaspi Gold', defaultCash: 'Наличные',
   },
   kk: {
-    acc_card: 'Карта', acc_cash: 'Қолма-қол', acc_savings: 'Жинақ шоты', acc_deposit: 'Депозит', acc_other: 'Басқа',
+    acc_card: 'Карта', acc_cash: 'Қолма-қол', acc_savings: 'Жинақ шоты', acc_deposit: 'Депозит', acc_credit: 'Несие / бөліп төлеу', acc_other: 'Басқа',
     freq_weekly: 'Апта сайын', freq_monthly: 'Ай сайын', freq_yearly: 'Жыл сайын',
     defaultCard: 'Kaspi Gold', defaultCash: 'Қолма-қол',
   },
   en: {
-    acc_card: 'Card', acc_cash: 'Cash', acc_savings: 'Savings', acc_deposit: 'Deposit', acc_other: 'Other',
+    acc_card: 'Card', acc_cash: 'Cash', acc_savings: 'Savings', acc_deposit: 'Deposit', acc_credit: 'Loan / installments', acc_other: 'Other',
     freq_weekly: 'Every week', freq_monthly: 'Every month', freq_yearly: 'Every year',
     defaultCard: 'Main card', defaultCash: 'Cash',
   },

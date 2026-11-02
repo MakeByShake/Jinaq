@@ -1,11 +1,13 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { Suspense, useMemo, useRef, useState } from 'react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import {
   Archive, ArchiveRestore, Bookmark, ChevronDown, ChevronRight, ChevronUp, Database, FileJson, FileSpreadsheet,
   Info, KeyRound, LogOut, Monitor, Moon, Palette, Pencil, Plus, Send, Sun, Tags, Trash2, UserRound, UserX,
+  ArrowLeft, ShieldCheck, Wallet, type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -23,7 +25,8 @@ import { LogoMark } from '@/components/brand/logo';
 import { useData } from '@/stores/data-store';
 import { auth } from '@/lib/firebase';
 import { useAuthStore } from '@/stores/auth-store';
-import { useAccounts, useCategories } from '@/hooks/use-finance';
+import { useAccounts, useBalances, useCategories } from '@/hooks/use-finance';
+import { AccountAvatar } from '@/components/app/account-picker';
 import { evalAmount, useCurrency, useMoney } from '@/lib/format';
 import { todayISO } from '@/lib/dates';
 import {
@@ -770,25 +773,148 @@ function AboutSection() {
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
-export default function SettingsPage() {
+// ─── Profile hub ─────────────────────────────────────────────────────────────
+
+type SectionKey = 'account' | 'appearance' | 'contacts' | 'categories' | 'templates' | 'data' | 'security' | 'about';
+
+const SECTION_VIEWS: Record<SectionKey, () => React.ReactNode> = {
+  account: () => <ProfileSection />,
+  appearance: () => <PreferencesSection />,
+  contacts: () => <ContactsSection />,
+  categories: () => <CategoriesSection />,
+  templates: () => <TemplatesSection />,
+  data: () => <DataSection />,
+  security: () => <SecuritySection />,
+  about: () => <AboutSection />,
+};
+
+function MenuRow({ href, icon: Icon, title, hint, tone = 'default', right }: {
+  href: string; icon: LucideIcon; title: string; hint?: string; tone?: 'default' | 'gold' | 'blue' | 'violet' | 'rose'; right?: React.ReactNode;
+}) {
+  const toneCls = {
+    default: 'bg-accent text-accent-foreground',
+    gold: 'bg-gold/15 text-gold',
+    blue: 'bg-chart-2/15 text-chart-2',
+    violet: 'bg-chart-4/15 text-chart-4',
+    rose: 'bg-expense/12 text-expense',
+  }[tone];
+  return (
+    <Link href={href} className="flex min-h-14 items-center gap-3 rounded-2xl px-2 py-2 transition-colors hover:bg-muted active:bg-muted">
+      <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', toneCls)}><Icon className="h-[18px] w-[18px]" /></span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold">{title}</span>
+        {hint && <span className="block truncate text-xs text-muted-foreground">{hint}</span>}
+      </span>
+      {right}
+      <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+    </Link>
+  );
+}
+
+function ProfileMenu() {
   const t = useT();
+  const fmt = useMoney();
+  const router = useRouter();
+  const user = useAuthStore((s) => s.currentUser);
+  const logout = useAuthStore((s) => s.logout);
+  const { active } = useAccounts();
+  const { total } = useBalances();
+
+  return (
+    <div className="mx-auto max-w-2xl space-y-4">
+      {/* Who */}
+      <Link href="?s=account" className="flex items-center gap-4 rounded-3xl border border-border bg-card p-4 card-shadow transition-colors hover:bg-muted/50">
+        <UserAvatar className="h-16 w-16 text-lg" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-lg font-extrabold">{user?.name}</p>
+          <p className="truncate text-sm text-muted-foreground">{user?.email}</p>
+          <p className="mt-1 text-xs font-semibold text-primary">{t('set.editProfile')}</p>
+        </div>
+        <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
+      </Link>
+
+      {/* My accounts */}
+      <Link href="/dashboard/accounts" className="@container block overflow-hidden rounded-3xl bg-brand-gradient p-4 text-white shadow-lg shadow-emerald-900/20 sm:p-5">
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-white/80">{t('set.m_accounts')}</p>
+            <p className="truncate font-display text-2xl font-semibold tabular sm:text-3xl">{fmt(total)}</p>
+          </div>
+          <ChevronRight className="h-5 w-5 shrink-0 text-white/80" />
+        </div>
+        <div className="mt-3 flex items-center gap-1.5">
+          {active.slice(0, 7).map((a) => <AccountAvatar key={a.id} account={a} size="sm" onDark />)}
+          {active.length > 7 && <span className="text-xs font-semibold text-white/80">+{active.length - 7}</span>}
+          <span className="ml-auto flex h-8 items-center gap-1 rounded-xl bg-white/20 px-2.5 text-xs font-semibold"><Plus className="h-3.5 w-3.5" /> {t('acc.addShort')}</span>
+        </div>
+      </Link>
+
+      <Panel title={t('set.groupMoney')} className="p-2 sm:p-3 [&>div:first-child]:px-2 [&>div:first-child]:pt-2">
+        <MenuRow href="/dashboard/accounts" icon={Wallet} title={t('set.m_accounts')} hint={t('set.m_accounts_d')} />
+        <MenuRow href="?s=categories" icon={Tags} title={t('set.m_categories')} hint={t('set.m_categories_d')} tone="violet" />
+        <MenuRow href="?s=templates" icon={Bookmark} title={t('set.m_templates')} hint={t('set.m_templates_d')} tone="gold" />
+      </Panel>
+
+      <Panel title={t('set.groupApp')} className="p-2 sm:p-3 [&>div:first-child]:px-2 [&>div:first-child]:pt-2">
+        <MenuRow href="?s=appearance" icon={Palette} title={t('set.m_appearance')} hint={t('set.m_appearance_d')} tone="blue" />
+        <MenuRow href="?s=contacts" icon={Send} title={t('set.m_contacts')} hint={t('set.m_contacts_d')} tone="blue" />
+      </Panel>
+
+      <Panel title={t('set.groupData')} className="p-2 sm:p-3 [&>div:first-child]:px-2 [&>div:first-child]:pt-2">
+        <MenuRow href="?s=data" icon={Database} title={t('set.m_data')} hint={t('set.m_data_d')} />
+        <MenuRow href="?s=security" icon={ShieldCheck} title={t('set.m_security')} hint={t('set.m_security_d')} tone="rose" />
+        <MenuRow href="?s=about" icon={Info} title={t('set.m_about')} hint="Jinaq Wallet" />
+      </Panel>
+
+      <Button
+        variant="outline"
+        className="h-12 w-full rounded-2xl text-destructive hover:bg-destructive/10 hover:text-destructive"
+        onClick={async () => { await logout(); toast.success(t('common.loggedOut')); router.replace('/login'); }}
+      >
+        <LogOut className="h-4 w-4" /> {t('common.logout')}
+      </Button>
+    </div>
+  );
+}
+
+const SECTION_TITLES: Record<SectionKey, string> = {
+  account: 'set.m_profile', appearance: 'set.m_appearance', contacts: 'set.m_contacts', categories: 'set.m_categories',
+  templates: 'set.m_templates', data: 'set.m_data', security: 'set.m_security', about: 'set.m_about',
+};
+
+function ProfileContent() {
+  const t = useT();
+  const params = useSearchParams();
+  const raw = params.get('s');
+  const section = raw && raw in SECTION_VIEWS ? (raw as SectionKey) : null;
+
+  if (!section) {
+    return (
+      <PageContainer>
+        <PageHeader title={t('nav.profile')} subtitle={t('set.profileSubtitle')} />
+        <ProfileMenu />
+      </PageContainer>
+    );
+  }
   return (
     <PageContainer>
-      <PageHeader title={t('set.title')} subtitle={t('set.subtitle')} />
-      <div className="grid gap-4 lg:grid-cols-2 lg:gap-5">
-        <div className="space-y-4 lg:space-y-5">
-          <ProfileSection />
-          <PreferencesSection />
-          <ContactsSection />
-          <SecuritySection />
+      <div className="mx-auto max-w-2xl">
+        <div className="mb-4 flex items-center gap-2 md:mb-6">
+          <Link href="/dashboard/profile" aria-label={t('common.back')} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border hover:bg-muted">
+            <ArrowLeft className="h-4 w-4" />
+          </Link>
+          <h1 className="truncate text-2xl font-extrabold tracking-tight md:text-3xl">{t(SECTION_TITLES[section])}</h1>
         </div>
-        <div className="space-y-4 lg:space-y-5">
-          <CategoriesSection />
-          <TemplatesSection />
-          <DataSection />
-          <AboutSection />
-        </div>
+        <div className="space-y-4">{SECTION_VIEWS[section]()}</div>
       </div>
     </PageContainer>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={null}>
+      <ProfileContent />
+    </Suspense>
   );
 }

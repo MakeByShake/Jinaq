@@ -1,5 +1,8 @@
 export const onb = {
   ru: {
+    banksTitle: '🏦 Карты в банках',
+    banksHint: 'Нажмите на свои банки и укажите баланс. Другие счета, депозиты и кредиты можно добавить позже в «Профиль → Мои счета».',
+    bankBalance: 'Баланс на карте',
     step: 'Шаг {n} из 3',
     s1Title: 'Привет, {name}! 👋',
     s1Text: 'Настроим Jinaq Wallet под вас за минуту. Выберите язык и валюту.',
@@ -21,6 +24,9 @@ export const onb = {
     go: 'Перейти в приложение',
   },
   kk: {
+    banksTitle: '🏦 Банк карталары',
+    banksHint: 'Банктеріңізді басып, балансты көрсетіңіз. Басқа шоттарды, депозиттер мен несиелерді кейін «Профиль → Менің шоттарым» бөлімінде қосуға болады.',
+    bankBalance: 'Картадағы баланс',
     step: '{n}-қадам / 3',
     s1Title: 'Сәлем, {name}! 👋',
     s1Text: 'Jinaq Wallet-ті бір минутта баптаймыз. Тіл мен валютаны таңдаңыз.',
@@ -42,6 +48,9 @@ export const onb = {
     go: 'Қолданбаға өту',
   },
   en: {
+    banksTitle: '🏦 Bank cards',
+    banksHint: 'Tap your banks and enter the balance. Other accounts, deposits and loans can be added later in Profile → My accounts.',
+    bankBalance: 'Card balance',
     step: 'Step {n} of 3',
     s1Title: 'Hi, {name}! 👋',
     s1Text: 'Let’s set up Jinaq Wallet in a minute. Pick your language and currency.',

@@ -11,6 +11,7 @@ import { Field } from './ui';
 import { LOCALES, useLocale, useLocaleStore, useT } from '@/i18n';
 import { useAuthStore } from '@/stores/auth-store';
 import { CURRENCIES, builtinCategoryId } from '@/lib/defaults';
+import { BANKS, getBank, suggestName } from '@/lib/banks';
 import { formatMoney } from '@/lib/format';
 import { newId, saveRecurring, seedUserData } from '@/lib/actions';
 import { safeToSpend } from '@/lib/finance';
@@ -29,8 +30,8 @@ export function Onboarding() {
 
   const [step, setStep] = useState(1);
   const [currency, setCurrency] = useState<CurrencyCode>(user.currency ?? 'KZT');
-  const [cardName, setCardName] = useState(t('enums.defaultCard'));
-  const [card, setCard] = useState('');
+  // Picked banks: bankId → { name, balance }
+  const [banks, setBanks] = useState<{ bankId: string; name: string; balance: string }[]>([]);
   const [cash, setCash] = useState('');
   const [income, setIncome] = useState<IncomeKey>('scholarship');
   const [incomeAmount, setIncomeAmount] = useState('');
@@ -43,17 +44,21 @@ export function Onboarding() {
   async function finish() {
     setBusy(true);
     try {
-      await seedUserData({ cardName: cardName.trim() || t('enums.defaultCard'), cashName: t('enums.defaultCash'), card: num(card), cash: num(cash) });
+      await seedUserData({
+        cashName: t('enums.defaultCash'),
+        cash: num(cash),
+        banks: banks.map((b) => ({ bankId: b.bankId, name: b.name.trim() || getBank(b.bankId)!.name, balance: num(b.balance) })),
+      });
       let rec: Recurring | null = null;
       if (income !== 'none' && num(incomeAmount) > 0) {
         rec = {
           id: newId('rec'), name: t(`cat.${income}`), kind: 'income', amount: num(incomeAmount),
-          categoryId: builtinCategoryId(income), accountId: 'acc-card', frequency: 'monthly',
+          categoryId: builtinCategoryId(income), accountId: banks[0] ? `acc-${banks[0].bankId}` : 'acc-cash', frequency: 'monthly',
           nextDate: incomeDate, active: true, createdAt: new Date().toISOString(),
         };
         saveRecurring(rec);
       }
-      const sts = safeToSpend(num(card) + num(cash), [], rec ? [rec] : []);
+      const sts = safeToSpend(banks.reduce((a, b) => a + num(b.balance), 0) + num(cash), [], rec ? [rec] : []);
       setResult(sts.daily);
       await updateProfile({ currency, locale });
     } catch (e) {
@@ -141,16 +146,58 @@ export function Onboarding() {
               <>
                 <h1 className="mt-2 text-3xl font-extrabold tracking-tight">{t('onb.s2Title')}</h1>
                 <p className="mt-2 text-muted-foreground">{t('onb.s2Text')}</p>
-                <div className="mt-8 space-y-4">
-                  <Field label={t('onb.cardName')}>
-                    <Input value={cardName} onChange={(e) => setCardName(e.target.value)} className="h-12 rounded-2xl text-base" />
-                  </Field>
-                  <Field label={t('onb.cardBalance')}>
-                    <Input inputMode="decimal" value={card} onChange={(e) => setCard(e.target.value)} placeholder="0" className="h-12 rounded-2xl text-base tabular" />
-                  </Field>
-                  <Field label={t('onb.cashBalance')}>
+                <div className="mt-8 space-y-5">
+                  <Field label={`💵 ${t('onb.cashBalance')}`}>
                     <Input inputMode="decimal" value={cash} onChange={(e) => setCash(e.target.value)} placeholder="0" className="h-12 rounded-2xl text-base tabular" />
                   </Field>
+                  <div className="space-y-2">
+                    <p className="text-[13px] font-semibold text-foreground/80">{t('onb.banksTitle')}</p>
+                    <div className="grid grid-cols-4 gap-2">
+                      {BANKS.slice(0, 12).map((b) => {
+                        const on = banks.some((x) => x.bankId === b.id);
+                        return (
+                          <button
+                            key={b.id}
+                            type="button"
+                            aria-pressed={on}
+                            onClick={() => setBanks((list) => (on ? list.filter((x) => x.bankId !== b.id) : [...list, { bankId: b.id, name: suggestName(b, 'card'), balance: '' }]))}
+                            className={cn('relative flex flex-col items-center gap-1 rounded-2xl border p-2 text-center transition-colors', on ? 'border-primary bg-accent' : 'border-border bg-card')}
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={b.logo} alt="" className="h-10 w-10 rounded-xl bg-white object-contain p-0.5 shadow-sm" />
+                            <span className="line-clamp-1 text-[10px] font-semibold">{b.short ?? b.name}</span>
+                            {on && <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-primary text-primary-foreground"><Check className="h-3 w-3" strokeWidth={3} /></span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">{t('onb.banksHint')}</p>
+                  </div>
+                  {banks.map((b) => {
+                    const bank = getBank(b.bankId)!;
+                    return (
+                      <div key={b.bankId} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={bank.logo} alt="" className="h-10 w-10 shrink-0 rounded-xl bg-white object-contain p-0.5" />
+                        <div className="min-w-0 flex-1 space-y-1.5">
+                          <Input
+                            value={b.name}
+                            onChange={(e) => setBanks((list) => list.map((x) => (x.bankId === b.bankId ? { ...x, name: e.target.value } : x)))}
+                            aria-label={t('onb.cardName')}
+                            className="h-9 rounded-xl text-sm font-semibold"
+                          />
+                          <Input
+                            inputMode="decimal"
+                            value={b.balance}
+                            onChange={(e) => setBanks((list) => list.map((x) => (x.bankId === b.bankId ? { ...x, balance: e.target.value } : x)))}
+                            placeholder={t('onb.bankBalance')}
+                            aria-label={t('onb.bankBalance')}
+                            className="h-11 rounded-xl text-base tabular"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </>
             )}

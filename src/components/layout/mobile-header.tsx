@@ -22,7 +22,7 @@ export function MobileHeader() {
         <Link href="/dashboard" className="flex min-w-0 items-center gap-2.5">
           <LogoMark className="h-8 w-8" />
           <span className="truncate text-base font-extrabold tracking-tight">
-            {item ? t(`nav.${item.key}`) : 'Jinaq Wallet'}
+            {pathname.startsWith('/dashboard/accounts') ? t('acc.title') : item ? t(`nav.${item.key}`) : 'Jinaq Wallet'}
           </span>
         </Link>
         <div className="flex items-center gap-2">
@@ -36,7 +36,7 @@ export function MobileHeader() {
               <Download className="h-3.5 w-3.5" /> {t('common.installShort')}
             </button>
           )}
-          <Link href="/dashboard/settings" aria-label={t('nav.settings')}>
+          <Link href="/dashboard/profile" aria-label={t('nav.profile')}>
             <UserAvatar className="h-8 w-8" />
           </Link>
         </div>
