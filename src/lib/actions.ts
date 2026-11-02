@@ -11,7 +11,7 @@ import {
 } from './defaults';
 import { getBank } from './banks';
 import type {
-  Account, Budget, Category, Debt, Goal, Plan, Recurring, Template, Transaction,
+  Account, Budget, Category, Debt, Goal, MerchantRule, Plan, Recurring, Template, Transaction,
 } from './types';
 import { COLLECTIONS, useData, type CollectionName } from '@/stores/data-store';
 
@@ -165,6 +165,33 @@ export function repayDebt(debt: Debt, amount: number, accountId?: string) {
     });
   }
 }
+
+// ─── Statement import ───────────────────────────────────────────────────────
+
+/** Writes many transactions at once (batched). Returns the created transactions. */
+export async function importTransactions(items: NewTransaction[], importId: string): Promise<Transaction[]> {
+  const now = new Date().toISOString();
+  const created = items.map<Transaction>((d) => ({ ...d, id: newId('tx'), createdAt: now, importId }));
+  for (let i = 0; i < created.length; i += 450) {
+    const b = writeBatch(db);
+    created.slice(i, i + 450).forEach((tx) => batchPut(b, 'transactions', tx));
+    await b.commit();
+  }
+  return created;
+}
+
+/** Removes every transaction created by one import. */
+export async function undoImport(importId: string) {
+  const txs = useData.getState().transactions.filter((t) => t.importId === importId);
+  for (let i = 0; i < txs.length; i += 450) {
+    const b = writeBatch(db);
+    txs.slice(i, i + 450).forEach((tx) => b.delete(ref('transactions', tx.id)));
+    await b.commit();
+  }
+  return txs.length;
+}
+
+export const saveRule = (r: MerchantRule) => put('rules', r);
 
 // ─── Planner ─────────────────────────────────────────────────────────────────
 

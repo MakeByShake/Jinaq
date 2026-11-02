@@ -78,6 +78,20 @@ export interface Transaction {
   goalId?: string;
   /** Balance correction — moves the balance but is ignored in spending stats. */
   adjustment?: boolean;
+  /** Set for operations created by a bank-statement import (allows undoing a whole import). */
+  importId?: string;
+  /** Original bank description, e.g. "ИП Ахметов" — used for duplicate detection. */
+  bankText?: string;
+}
+
+// ─── Merchant rules (remembered categories from statement imports) ──────────
+export interface MerchantRule {
+  id: string; // normalized merchant key
+  merchant: string; // as shown in the statement
+  categoryId: string;
+  /** Skip this merchant on future imports (e.g. transfers between own accounts). */
+  ignore?: boolean;
+  updatedAt: string;
 }
 
 // ─── Budgets (monthly limit per expense category) ────────────────────────────

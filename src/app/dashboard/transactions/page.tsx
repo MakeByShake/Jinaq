@@ -1,13 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { ArrowDownLeft, ArrowUpRight, Download, Hash, Plus, Receipt, Scale, Search, SearchX, X } from 'lucide-react';
+import { ArrowDownLeft, ArrowUpRight, Download, Hash, Plus, Receipt, Scale, Search, SearchX, X, FileUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
   Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+import Link from 'next/link';
 import { EmptyState, Money, PageContainer, PageHeader, Panel, Segmented, StatTile } from '@/components/app/ui';
 import { TransactionGroups } from '@/components/app/transaction-list';
 import { useData } from '@/stores/data-store';
@@ -138,12 +139,21 @@ export default function TransactionsPage() {
         title={t('tx.title')}
         subtitle={t('tx.subtitle')}
         actions={
-          transactions.length > 0 && (
-            <Button variant="outline" className="h-10 rounded-xl" onClick={onExport} aria-label={t('tx.exportCsv')}>
-              <Download className="h-4 w-4" />
-              <span className="hidden sm:inline">{t('tx.exportCsv')}</span>
+          <>
+            <Button asChild className="h-10 rounded-xl">
+              <Link href="/dashboard/import" aria-label={t('imp.entry')}>
+                <FileUp className="h-4 w-4" />
+                <span className="hidden sm:inline">{t('imp.entry')}</span>
+                <span className="sm:hidden">Kaspi</span>
+              </Link>
             </Button>
-          )
+            {transactions.length > 0 && (
+              <Button variant="outline" size="icon" className="h-10 w-10 rounded-xl sm:w-auto sm:px-3" onClick={onExport} aria-label={t('tx.exportCsv')}>
+                <Download className="h-4 w-4" />
+                <span className="hidden sm:inline">{t('tx.exportCsv')}</span>
+              </Button>
+            )}
+          </>
         }
       />
 

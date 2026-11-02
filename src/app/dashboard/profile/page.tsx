@@ -7,7 +7,7 @@ import { useTheme } from 'next-themes';
 import {
   Archive, ArchiveRestore, Bookmark, ChevronDown, ChevronRight, ChevronUp, Database, FileJson, FileSpreadsheet,
   Info, KeyRound, LogOut, Monitor, Moon, Palette, Pencil, Plus, Send, Sun, Tags, Trash2, UserRound, UserX,
-  ArrowLeft, ShieldCheck, Wallet, type LucideIcon,
+  ArrowLeft, FileUp, ShieldCheck, Wallet, type LucideIcon,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -851,6 +851,7 @@ function ProfileMenu() {
 
       <Panel title={t('set.groupMoney')} className="p-2 sm:p-3 [&>div:first-child]:px-2 [&>div:first-child]:pt-2">
         <MenuRow href="/dashboard/accounts" icon={Wallet} title={t('set.m_accounts')} hint={t('set.m_accounts_d')} />
+        <MenuRow href="/dashboard/import" icon={FileUp} title={t('imp.entry')} hint={t('imp.subtitle')} tone="rose" />
         <MenuRow href="?s=categories" icon={Tags} title={t('set.m_categories')} hint={t('set.m_categories_d')} tone="violet" />
         <MenuRow href="?s=templates" icon={Bookmark} title={t('set.m_templates')} hint={t('set.m_templates_d')} tone="gold" />
       </Panel>

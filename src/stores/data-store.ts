@@ -2,12 +2,12 @@
 
 import { create } from 'zustand';
 import type {
-  Account, Budget, Category, Debt, Goal, Plan, Recurring, Template, Transaction,
+  Account, Budget, Category, Debt, Goal, MerchantRule, Plan, Recurring, Template, Transaction,
 } from '@/lib/types';
 
 /** Firestore sub-collections under users/{uid}. */
 export const COLLECTIONS = [
-  'accounts', 'categories', 'transactions', 'budgets', 'recurring', 'templates', 'debts', 'goals',
+  'accounts', 'categories', 'transactions', 'budgets', 'recurring', 'templates', 'debts', 'goals', 'rules',
 ] as const;
 export type CollectionName = (typeof COLLECTIONS)[number];
 
@@ -20,6 +20,7 @@ export interface DataState {
   templates: Template[];
   debts: Debt[];
   goals: Goal[];
+  rules: MerchantRule[];
   plan: Plan | null;
   /** Which collections have delivered their first snapshot. */
   ready: Partial<Record<CollectionName, boolean>>;
@@ -31,7 +32,7 @@ export interface DataState {
 
 const EMPTY = {
   accounts: [], categories: [], transactions: [], budgets: [], recurring: [], templates: [],
-  debts: [], goals: [], plan: null, ready: {}, loaded: false,
+  debts: [], goals: [], rules: [], plan: null, ready: {}, loaded: false,
 };
 
 const byOrder = <T extends { order: number }>(a: T, b: T) => a.order - b.order;
