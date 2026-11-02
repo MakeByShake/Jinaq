@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Check, Delete, Trash2, CalendarDays, Bookmark, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, Trash2, CalendarDays, Bookmark, ChevronDown, ChevronUp } from 'lucide-react';
 import { addDays } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,6 @@ import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
 import type { TransactionKind } from '@/lib/types';
 
-const KEYS = ['1', '2', '3', '+', '4', '5', '6', '−', '7', '8', '9', '⌫', '.', '0', '000', '✓'];
 
 export function QuickAddSheet() {
   const { open, kind: initialKind, editing, close } = useQuickAdd();
@@ -92,17 +91,6 @@ export function QuickAddSheet() {
 
   const amount = evalAmount(expr.replace(/−/g, '-'));
   const isExpression = /[+\-−*/]/.test(expr.replace(/^-/, ''));
-
-  const press = (k: string) => {
-    if (k === '⌫') return setExpr((e) => e.slice(0, -1));
-    if (k === '✓') return submit();
-    if (k === '+' || k === '−') {
-      setExpr((e) => (e === '' || /[+−]$/.test(e) ? e : e + k));
-      return;
-    }
-    if (k === '.' && /\.\d*$/.test(expr.split(/[+−]/).pop() ?? '')) return;
-    setExpr((e) => (e.length > 18 ? e : e + k));
-  };
 
   function submit() {
     if (!Number.isFinite(amount) || amount <= 0) return toast.error(t('common.invalidAmount'));
@@ -229,22 +217,25 @@ export function QuickAddSheet() {
 
         {/* Amount */}
         <div className="rounded-3xl bg-muted/60 px-4 py-3 text-center">
-          {isMobile ? (
-            <div className={cn('min-h-[3.25rem] font-display text-4xl font-semibold tracking-tight tabular break-all', accentText, !expr && 'opacity-30')}>
-              {expr || '0'}
-            </div>
-          ) : (
-            <input
-              ref={amountRef}
-              value={expr}
-              onChange={(e) => setExpr(e.target.value.replace(/[^\d.,+\-*/ ]/g, ''))}
-              onKeyDown={(e) => { if (e.key === 'Enter') submit(); }}
-              inputMode="decimal"
-              placeholder="0"
-              aria-label={t('common.amount')}
-              className={cn('w-full bg-transparent text-center font-display text-4xl font-semibold tracking-tight tabular outline-none placeholder:opacity-30', accentText)}
-            />
-          )}
+          <input
+            ref={amountRef}
+            value={expr}
+            onChange={(e) => setExpr(e.target.value.replace(/[^\d.,+\-*/ ]/g, '').slice(0, 20))}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter') return;
+              // Phones: "Done" just hides the keyboard. Computers: Enter saves.
+              if (isMobile) (e.target as HTMLInputElement).blur();
+              else submit();
+            }}
+            onFocus={(e) => e.target.select()}
+            type="text"
+            inputMode="decimal"
+            enterKeyHint="done"
+            autoComplete="off"
+            placeholder="0"
+            aria-label={t('common.amount')}
+            className={cn('w-full bg-transparent text-center font-display text-4xl font-semibold tracking-tight tabular outline-none placeholder:opacity-30', accentText)}
+          />
           <p className="h-4 text-xs text-muted-foreground tabular">
             {isExpression && Number.isFinite(amount) ? `= ${fmt(amount)}` : ''}
           </p>
@@ -286,25 +277,6 @@ export function QuickAddSheet() {
           </div>
         )}
 
-        {/* Number pad (phones) */}
-        {isMobile && (
-          <div className="grid grid-cols-4 gap-1.5">
-            {KEYS.map((k) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => press(k)}
-                aria-label={k === '⌫' ? 'backspace' : k === '✓' ? t('common.save') : k}
-                className={cn(
-                  'flex h-11 items-center justify-center rounded-2xl text-lg font-semibold transition-colors active:scale-95',
-                  k === '✓' ? 'bg-primary text-primary-foreground' : /[+−⌫]/.test(k) ? 'bg-muted text-muted-foreground' : 'bg-muted/50 hover:bg-muted',
-                )}
-              >
-                {k === '⌫' ? <Delete className="h-5 w-5" /> : k === '✓' ? <Check className="h-5 w-5" /> : k}
-              </button>
-            ))}
-          </div>
-        )}
         {/* Accounts */}
         <div className="space-y-1.5">
           <p className="text-xs font-semibold text-muted-foreground">{kind === 'transfer' ? t('tx.from') : t('common.account')}</p>

@@ -23,7 +23,7 @@ export function ResponsiveSheet({ open, onOpenChange, title, description, childr
 
   if (isMobile) {
     return (
-      <Drawer open={open} onOpenChange={onOpenChange} repositionInputs={false}>
+      <Drawer open={open} onOpenChange={onOpenChange}>
         <DrawerContent className="max-h-[94dvh] rounded-t-3xl border-0 bg-card">
           <DrawerHeader className="pb-2 pt-3 text-left">
             <DrawerTitle className="text-lg font-bold">{title}</DrawerTitle>
