@@ -38,7 +38,7 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
   // Only handle our own origin; Firebase and other APIs go straight to the network.
-  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return;
+  if (url.origin !== self.location.origin || url.pathname.startsWith('/api/') || url.pathname === '/version') return;
 
   // Page navigations: network first, cached copy when offline.
   if (request.mode === 'navigate') {

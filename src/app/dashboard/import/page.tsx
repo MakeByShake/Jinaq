@@ -397,13 +397,13 @@ export default function ImportPage() {
         <div className="order-first space-y-3 lg:sticky lg:top-6 lg:order-none">
           <Panel title={t('imp.period')}>
             <div className="grid grid-cols-2 gap-2">
-              <label className="space-y-1">
+              <label className="min-w-0 space-y-1">
                 <span className="text-xs font-semibold text-muted-foreground">{t('imp.from')}</span>
-                <Input type="date" value={range.from} onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))} className="h-11 rounded-xl" />
+                <Input type="date" value={range.from} onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))} className="h-11 w-full min-w-0 appearance-none rounded-xl" />
               </label>
-              <label className="space-y-1">
+              <label className="min-w-0 space-y-1">
                 <span className="text-xs font-semibold text-muted-foreground">{t('imp.to')}</span>
-                <Input type="date" value={range.to} onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))} className="h-11 rounded-xl" />
+                <Input type="date" value={range.to} onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))} className="h-11 w-full min-w-0 appearance-none rounded-xl" />
               </label>
             </div>
           </Panel>

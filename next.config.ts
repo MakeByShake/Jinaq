@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Lets the app notice a newer deployment (see useAutoUpdate).
+  env: { NEXT_PUBLIC_BUILD: process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev' },
   // Old routes from the first version of the app keep working.
   async redirects() {
     return [

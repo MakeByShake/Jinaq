@@ -6,6 +6,7 @@ import { WifiOff } from 'lucide-react';
 import { Toaster } from '@/components/ui/sonner';
 import { useFirebaseData } from '@/hooks/use-firebase-data';
 import { usePwa } from '@/hooks/use-pwa';
+import { useAutoUpdate } from '@/hooks/use-auto-update';
 import { initLocale, useLocaleStore, useT } from '@/i18n';
 import { useAuthStore } from '@/stores/auth-store';
 
@@ -36,6 +37,7 @@ function LocaleInit() {
 
 function OfflineBanner() {
   const { isOnline } = usePwa();
+  useAutoUpdate();
   const t = useT();
   if (isOnline) return null;
   return (
