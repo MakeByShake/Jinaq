@@ -502,7 +502,7 @@ function AccountDetail({ info, onClose, onEdit }: { info: AccountInfo; onClose: 
             ) : (
               // Opening a transaction hands over to the quick-add sheet.
               <div className="-mx-2" onClick={onClose}>
-                {txs.slice(0, 20).map((tx) => <TransactionRow key={tx.id} tx={tx} showDate />)}
+                {txs.slice(0, 20).map((tx) => <TransactionRow key={tx.id} tx={tx} showDate accountId={a.id} />)}
               </div>
             )}
           </div>

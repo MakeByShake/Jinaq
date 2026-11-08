@@ -3,20 +3,24 @@
 import { useMemo } from 'react';
 import { ArrowLeftRight, Repeat, Target, HandCoins } from 'lucide-react';
 import { IconBubble } from '@/lib/icons';
-import { useAccounts, useCategories } from '@/hooks/use-finance';
-import { useDayLabel } from '@/lib/format';
+import { format } from 'date-fns';
+import { useAccounts, useBalanceAfter, useCategories } from '@/hooks/use-finance';
+import { useDayLabel, useMoney } from '@/lib/format';
 import { useQuickAdd } from '@/stores/ui-store';
 import { useT } from '@/i18n';
 import type { Transaction } from '@/lib/types';
 import { Money } from './ui';
 import { cn } from '@/lib/utils';
 
-export function TransactionRow({ tx, showDate = false, compact = false }: { tx: Transaction; showDate?: boolean; compact?: boolean }) {
+/** `accountId` — the account whose balance to show (for a transfer into it, its own balance). */
+export function TransactionRow({ tx, showDate = false, compact = false, accountId }: { tx: Transaction; showDate?: boolean; compact?: boolean; accountId?: string }) {
   const { map: catMap, label } = useCategories();
   const { map: accMap } = useAccounts();
   const openEdit = useQuickAdd((s) => s.openEdit);
   const dayLabel = useDayLabel();
   const t = useT();
+  const fmt = useMoney();
+  const after = useBalanceAfter().get(tx.id);
 
   const cat = tx.categoryId ? catMap.get(tx.categoryId) : undefined;
   const account = accMap.get(tx.accountId);
@@ -27,6 +31,10 @@ export function TransactionRow({ tx, showDate = false, compact = false }: { tx: 
   const subtitle = isTransfer
     ? `${account?.name ?? '—'} → ${toAccount?.name ?? '—'}`
     : [tx.note, account?.name].filter(Boolean).join(' · ');
+  // Time of the operation, when it was entered on the same day (imports have no time).
+  const created = new Date(tx.createdAt);
+  const time = !Number.isNaN(created.getTime()) && format(created, 'yyyy-MM-dd') === tx.date.slice(0, 10) ? format(created, 'HH:mm') : '';
+  const when = showDate ? [dayLabel(tx.date), time].filter(Boolean).join(', ') : time;
   const LinkIcon = tx.recurringId ? Repeat : tx.goalId ? Target : tx.debtId ? HandCoins : null;
 
   return (
@@ -51,10 +59,17 @@ export function TransactionRow({ tx, showDate = false, compact = false }: { tx: 
           {LinkIcon && <LinkIcon className="h-3 w-3 shrink-0 text-muted-foreground" />}
         </p>
         <p className="truncate text-xs text-muted-foreground">
-          {showDate ? [dayLabel(tx.date), subtitle].filter(Boolean).join(' · ') : subtitle || ' '}
+          {[when, subtitle].filter(Boolean).join(' · ') || ' '}
         </p>
       </div>
-      <Money value={tx.amount} kind={tx.kind} className="text-sm font-bold" />
+      <div className="flex shrink-0 flex-col items-end">
+        <Money value={tx.amount} kind={tx.kind} className="text-sm font-bold" />
+        {after && (
+          <span className="tabular whitespace-nowrap text-[11px] text-muted-foreground">
+            {t('common.balanceAfter')} {fmt(accountId && accountId === tx.toAccountId && after.to !== undefined ? after.to : after.from)}
+          </span>
+        )}
+      </div>
     </button>
   );
 }

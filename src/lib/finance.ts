@@ -26,6 +26,24 @@ export function accountBalances(accounts: Account[], txs: Transaction[]): Record
   return bal;
 }
 
+/** Balance left on the account right after each operation (like "Доступно" in bank SMS).
+ *  `txs` must be sorted newest first (as in the data store). */
+export interface BalanceAfter { from: number; to?: number }
+export function balancesAfter(accounts: Account[], txs: Transaction[]): Map<string, BalanceAfter> {
+  const bal: Record<string, number> = {};
+  for (const a of accounts) bal[a.id] = a.initialBalance || 0;
+  const out = new Map<string, BalanceAfter>();
+  for (let i = txs.length - 1; i >= 0; i--) {
+    const tx = txs[i];
+    const from = tx.accountId;
+    if (tx.kind === 'income') bal[from] = (bal[from] ?? 0) + tx.amount;
+    else bal[from] = (bal[from] ?? 0) - tx.amount;
+    if (tx.kind === 'transfer' && tx.toAccountId) bal[tx.toAccountId] = (bal[tx.toAccountId] ?? 0) + tx.amount;
+    out.set(tx.id, { from: bal[from], to: tx.kind === 'transfer' && tx.toAccountId ? bal[tx.toAccountId] : undefined });
+  }
+  return out;
+}
+
 export function totalBalance(accounts: Account[], balances: Record<string, number>, spendableOnly = false) {
   return accounts
     .filter((a) => !a.archived && (!spendableOnly || !a.excludeFromTotal))
