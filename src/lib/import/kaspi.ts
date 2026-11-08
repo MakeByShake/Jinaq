@@ -21,6 +21,8 @@ export interface ParsedStatement {
   ops: ParsedOp[];
   /** Lines that looked like operations but could not be read (for diagnostics). */
   skipped: number;
+  /** "Доступно на 08.11.26 + 45 073,17 ₸" — balance at the end of the period. */
+  closing?: { date: string; amount: number };
 }
 
 // Note: \w / \b don't match Cyrillic in JS — use \p{L} with the "u" flag.
@@ -35,6 +37,8 @@ const TYPE_WORDS: [RegExp, OpType][] = [
 const DATE = String.raw`(\d{2})\.(\d{2})\.(\d{2}|\d{4})`;
 // date, sign, amount, rest
 const ROW = new RegExp(String.raw`^${DATE}\s+([+\-−–])\s*([\d\s ]+(?:[.,]\d{1,2})?)\s*(?:₸|тг|KZT|T)?\s+(.+)$`, 'i');
+// "Доступно на 08.11.26: + 45 073,17 ₸" (also Kazakh / English variants)
+const AVAILABLE = new RegExp(String.raw`(?:доступно\s+на|қолжетімді|available\s+(?:on|as\s+of))\s*${DATE}:?\s*([+\-−–])?\s*([\d\s ]+[.,]\d{2})`, 'iu');
 const PERIOD = new RegExp(String.raw`${DATE}\s*(?:-|–|по|до|to)\s*${DATE}`, 'i');
 
 function toISO(d: string, m: string, y: string) {
@@ -64,9 +68,15 @@ export function parseKaspiStatement(lines: string[]): ParsedStatement {
   const ops: ParsedOp[] = [];
   let period: ParsedStatement['period'];
   let skipped = 0;
+  const available = new Map<string, number>();
 
   for (const raw of lines) {
     const line = raw.replace(/ /g, ' ').trim();
+    const av = line.match(AVAILABLE);
+    if (av) {
+      const v = parseAmount(av[5]);
+      if (Number.isFinite(v)) available.set(toISO(av[1], av[2], av[3]), av[4] && av[4] !== '+' ? -v : v);
+    }
     if (!period) {
       const p = line.match(PERIOD);
       if (p && /(период|кезең|period|выписка|с\s|from)/iu.test(line)) {
@@ -97,5 +107,7 @@ export function parseKaspiStatement(lines: string[]): ParsedStatement {
     const dates = ops.map((o) => o.date).sort();
     period = { from: dates[0], to: dates[dates.length - 1] };
   }
-  return { bank: 'kaspi', period, ops, skipped };
+  const closingDate = [...available.keys()].sort().pop();
+  const closing = closingDate ? { date: closingDate, amount: available.get(closingDate)! } : undefined;
+  return { bank: 'kaspi', period, ops, skipped, closing };
 }

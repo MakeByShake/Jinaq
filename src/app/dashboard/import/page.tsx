@@ -11,16 +11,17 @@ import { ResponsiveSheet } from '@/components/app/sheet';
 import { AccountPicker } from '@/components/app/account-picker';
 import { useData } from '@/stores/data-store';
 import { useAccounts, useCategories } from '@/hooks/use-finance';
-import { useDayLabel } from '@/lib/format';
+import { useDateFormat, useDayLabel, useMoney } from '@/lib/format';
+import { balanceOnDay } from '@/lib/finance';
 import { IconBubble } from '@/lib/icons';
-import { importTransactions, newId, saveRule, undoImport, type NewTransaction } from '@/lib/actions';
+import { importTransactions, newId, reconcileWithStatement, saveAccount, saveRule, undoImport, type NewTransaction } from '@/lib/actions';
 import { pdfToLines } from '@/lib/import/pdf-text';
 import { parseKaspiStatement } from '@/lib/import/kaspi';
 import { buildRows, ruleFor, type Flag, type ImportRow } from '@/lib/import/review';
 import { merchantKey } from '@/lib/import/categorize';
 import { useT } from '@/i18n';
 import { cn } from '@/lib/utils';
-import type { MerchantRule } from '@/lib/types';
+import type { Account, MerchantRule, Transaction } from '@/lib/types';
 
 type Filter = 'all' | 'expense' | 'income' | 'attention';
 const ATTENTION: Flag[] = ['duplicate', 'refund', 'own', 'unsure', 'ignored'];
@@ -188,7 +189,11 @@ export default function ImportPage() {
   const [filter, setFilter] = useState<Filter>('all');
   const [catRow, setCatRow] = useState<string | null>(null);
   const [newRules, setNewRules] = useState<Map<string, MerchantRule>>(new Map());
-  const [done, setDone] = useState<{ importId: string; count: number } | null>(null);
+  const [done, setDone] = useState<{ importId: string; count: number; fixed?: number; before?: Account } | null>(null);
+  const [closing, setClosing] = useState<{ date: string; amount: number } | undefined>();
+  const [fixBalance, setFixBalance] = useState(true);
+  const fmt = useMoney();
+  const fmtDate = useDateFormat();
 
   const cash = accounts.find((a) => a.type === 'cash');
   const defaultAccount = accounts.find((a) => a.bankId === 'kaspi' && a.type === 'card') ?? accounts.find((a) => a.type === 'card') ?? accounts[0];
@@ -206,6 +211,8 @@ export default function ImportPage() {
       if (!acc) { toast.error(t('imp.noAccount')); return; }
       setAccountId(acc);
       setRange(st.period ?? { from: st.ops[st.ops.length - 1].date, to: st.ops[0].date });
+      setClosing(st.closing);
+      setFixBalance(true);
       setRows(buildRows(st.ops, { accountId: acc, cashAccountId: cash?.id, existing: transactions, rules: rulesList, categories }));
       setNewRules(new Map());
       setFilter('all');
@@ -222,7 +229,7 @@ export default function ImportPage() {
     if (!id || !rows) return;
     setAccountId(id);
     const fresh = buildRows(rows.map((r) => r.op), { accountId: id, cashAccountId: cash?.id, existing: transactions, rules: rulesList, categories });
-    setRows(rows.map((r, i) => ({ ...r, flags: fresh[i].flags })));
+    setRows(rows.map((r, i) => ({ ...r, flags: fresh[i].flags, matchId: fresh[i].matchId })));
   };
 
   const inRange = (r: ImportRow) => (!range.from || r.op.date >= range.from) && (!range.to || r.op.date <= range.to);
@@ -234,6 +241,14 @@ export default function ImportPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   )), [rows, filter, range]);
   const selected = (rows ?? []).filter((r) => r.checked && inRange(r));
+
+  // Balance check against the statement's "Доступно на …".
+  const account = accounts.find((a) => a.id === accountId);
+  const appAfter = account && closing
+    ? balanceOnDay(account, transactions, closing.date) + selected.filter((r) => r.op.date <= closing.date).reduce((s, r) => s + r.op.sign * r.op.amount, 0)
+    : undefined;
+  const diff = closing && appAfter !== undefined ? Math.round((closing.amount - appAfter) * 100) / 100 : 0;
+  const willFix = fixBalance && Math.abs(diff) >= 0.01;
 
   const update = (key: string, patch: (r: ImportRow) => ImportRow) => setRows((rs) => rs && rs.map((r) => (r.op.key === key ? patch(r) : r)));
 
@@ -251,17 +266,30 @@ export default function ImportPage() {
 
   async function doImport() {
     if (!rows || !accountId) return;
-    if (selected.length === 0) return toast.error(t('imp.nothing'));
+    if (selected.length === 0 && !willFix) return toast.error(t('imp.nothing'));
     setBusy(true);
     try {
       const importId = newId('imp');
-      const items: NewTransaction[] = selected.map((r) => (r.kind === 'transfer'
-        ? { kind: 'transfer', amount: r.op.amount, accountId, toAccountId: cash?.id, note: r.op.details || undefined, date: r.op.date, bankText: r.op.details }
-        : { kind: r.kind, amount: r.op.amount, accountId, categoryId: r.categoryId, note: r.op.details || undefined, date: r.op.date, bankText: r.op.details }));
-      await importTransactions(items, importId);
+      // Statement lists newest first; createdAt keeps the bank's order inside each day.
+      const base = Date.now();
+      const stamp = (r: ImportRow) => new Date(base - rows.indexOf(r)).toISOString();
+      const items: (NewTransaction & { createdAt: string })[] = selected.map((r) => (r.kind === 'transfer'
+        ? { kind: 'transfer', amount: r.op.amount, accountId, toAccountId: cash?.id, note: r.op.details || undefined, date: r.op.date, bankText: r.op.details, createdAt: stamp(r) }
+        : { kind: r.kind, amount: r.op.amount, accountId, categoryId: r.categoryId, note: r.op.details || undefined, date: r.op.date, bankText: r.op.details, createdAt: stamp(r) }));
+      if (items.length) await importTransactions(items, importId);
+      let fixed: number | undefined;
+      if (willFix && account) {
+        const byId = new Map(transactions.map((tx) => [tx.id, tx]));
+        const reorder = rows.flatMap((r) => {
+          const tx = r.matchId ? byId.get(r.matchId) : undefined;
+          return tx?.importId ? [{ tx, createdAt: stamp(r) }] : [];
+        }) as { tx: Transaction; createdAt: string }[];
+        await reconcileWithStatement(account, (account.initialBalance || 0) + diff, reorder);
+        fixed = closing!.amount;
+      }
       newRules.forEach((rule) => saveRule(rule));
       if (newRules.size > 0) toast.success(t('imp.rulesSaved', { count: newRules.size }));
-      setDone({ importId, count: items.length });
+      setDone({ importId, count: items.length, fixed, before: fixed !== undefined ? account : undefined });
       setRows(null);
     } catch (e) {
       console.error(e);
@@ -279,7 +307,7 @@ export default function ImportPage() {
           <EmptyState
             icon={Sparkles}
             title={t('imp.doneTitle')}
-            text={t('imp.doneText', { count: done.count })}
+            text={[t('imp.doneText', { count: done.count }), done.fixed !== undefined ? t('imp.balanceFixed', { amount: fmt(done.fixed) }) : ''].filter(Boolean).join('. ')}
             action={
               <div className="flex flex-col gap-2">
                 <Button asChild className="h-11 rounded-xl"><Link href="/dashboard/transactions">{t('imp.toTransactions')}</Link></Button>
@@ -287,7 +315,7 @@ export default function ImportPage() {
                 <Button
                   variant="ghost"
                   className="h-11 rounded-xl text-destructive hover:text-destructive"
-                  onClick={async () => { await undoImport(done.importId); toast(t('imp.undone')); setDone(null); }}
+                  onClick={async () => { await undoImport(done.importId); if (done.before) saveAccount(done.before); toast(t('imp.undone')); setDone(null); }}
                 >
                   <Undo2 className="h-4 w-4" /> {t('imp.undo')}
                 </Button>
@@ -382,6 +410,25 @@ export default function ImportPage() {
           <Panel title={t('imp.intoAccount')}>
             <AccountPicker value={accountId} onChange={changeAccount} />
           </Panel>
+          {closing && appAfter !== undefined && (
+            <Panel title={t('imp.reconcile')}>
+              <div className="space-y-1.5 text-sm">
+                <div className="flex justify-between gap-2"><span className="text-muted-foreground">{t('imp.bankBalance', { date: fmtDate(closing.date, 'd MMMM') })}</span><Money value={closing.amount} className="font-bold" /></div>
+                <div className="flex justify-between gap-2"><span className="text-muted-foreground">{t('imp.appBalance')}</span><Money value={appAfter} className={cn('font-bold', Math.abs(diff) >= 0.01 && 'text-warning')} /></div>
+              </div>
+              {Math.abs(diff) < 0.01 ? (
+                <p className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-income"><Check className="h-4 w-4" /> {t('imp.balanceMatch')}</p>
+              ) : (
+                <label className="mt-3 flex cursor-pointer items-start gap-2.5 rounded-2xl bg-warning/10 p-3">
+                  <input type="checkbox" checked={fixBalance} onChange={(e) => setFixBalance(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0 accent-[var(--primary)]" />
+                  <span>
+                    <span className="block text-sm font-semibold">{t('imp.fixBalance')}</span>
+                    <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">{t('imp.fixHint')}</span>
+                  </span>
+                </label>
+              )}
+            </Panel>
+          )}
         </div>
       </div>
 
@@ -389,9 +436,9 @@ export default function ImportPage() {
       <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-40 border-t border-border bg-background/90 px-4 py-3 backdrop-blur-xl md:bottom-0 md:left-[76px] lg:left-64">
         <div className="mx-auto flex max-w-6xl items-center gap-3">
           <p className="min-w-0 flex-1 truncate text-sm font-semibold">{t('imp.selected', { count: selected.length })}</p>
-          <Button className="h-12 rounded-2xl px-6 text-base font-bold" disabled={busy || selected.length === 0} onClick={doImport}>
+          <Button className="h-12 rounded-2xl px-6 text-base font-bold" disabled={busy || (selected.length === 0 && !willFix)} onClick={doImport}>
             {busy ? <Loader2 className="h-5 w-5 animate-spin" /> : <Check className="h-5 w-5" />}
-            {busy ? t('imp.importing') : t('imp.import', { count: selected.length })}
+            {busy ? t('imp.importing') : selected.length === 0 && willFix ? t('imp.fixOnly') : t('imp.import', { count: selected.length })}
           </Button>
         </div>
       </div>

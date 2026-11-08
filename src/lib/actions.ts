@@ -169,9 +169,10 @@ export function repayDebt(debt: Debt, amount: number, accountId?: string) {
 // ─── Statement import ───────────────────────────────────────────────────────
 
 /** Writes many transactions at once (batched). Returns the created transactions. */
-export async function importTransactions(items: NewTransaction[], importId: string): Promise<Transaction[]> {
-  const now = new Date().toISOString();
-  const created = items.map<Transaction>((d) => ({ ...d, id: newId('tx'), createdAt: now, importId }));
+/** `items` come newest first (statement order); createdAt keeps that order inside a day. */
+export async function importTransactions(items: (NewTransaction & { createdAt?: string })[], importId: string): Promise<Transaction[]> {
+  const base = Date.now();
+  const created = items.map<Transaction>((d, i) => ({ ...d, id: newId('tx'), createdAt: d.createdAt ?? new Date(base - i).toISOString(), importId }));
   for (let i = 0; i < created.length; i += 450) {
     const b = writeBatch(db);
     created.slice(i, i + 450).forEach((tx) => batchPut(b, 'transactions', tx));
@@ -192,6 +193,18 @@ export async function undoImport(importId: string) {
 }
 
 export const saveRule = (r: MerchantRule) => put('rules', r);
+
+/**
+ * Makes the account match the bank statement: sets its starting balance so the balance
+ * at the statement end equals the bank's, and restores the statement's order of operations
+ * inside each day for already-imported ones.
+ */
+export async function reconcileWithStatement(account: Account, initialBalance: number, reorder: { tx: Transaction; createdAt: string }[]) {
+  const b = writeBatch(db);
+  batchPut(b, 'accounts', { ...account, initialBalance: Math.round(initialBalance * 100) / 100 });
+  reorder.slice(0, 450).forEach(({ tx, createdAt }) => batchPut(b, 'transactions', { ...tx, createdAt }));
+  await b.commit();
+}
 
 // ─── Planner ─────────────────────────────────────────────────────────────────
 

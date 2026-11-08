@@ -33,7 +33,7 @@ export function TransactionRow({ tx, showDate = false, compact = false, accountI
     : [tx.note, account?.name].filter(Boolean).join(' · ');
   // Time of the operation, when it was entered on the same day (imports have no time).
   const created = new Date(tx.createdAt);
-  const time = !Number.isNaN(created.getTime()) && format(created, 'yyyy-MM-dd') === tx.date.slice(0, 10) ? format(created, 'HH:mm') : '';
+  const time = !tx.importId && !Number.isNaN(created.getTime()) && format(created, 'yyyy-MM-dd') === tx.date.slice(0, 10) ? format(created, 'HH:mm') : '';
   const when = showDate ? [dayLabel(tx.date), time].filter(Boolean).join(', ') : time;
   const LinkIcon = tx.recurringId ? Repeat : tx.goalId ? Target : tx.debtId ? HandCoins : null;
 

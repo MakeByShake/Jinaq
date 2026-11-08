@@ -44,6 +44,17 @@ export function balancesAfter(accounts: Account[], txs: Transaction[]): Map<stri
   return out;
 }
 
+/** Balance of one account at the end of `day` (inclusive). */
+export function balanceOnDay(account: Account, txs: Transaction[], day: string): number {
+  let bal = account.initialBalance || 0;
+  for (const tx of txs) {
+    if (tx.date.slice(0, 10) > day) continue;
+    if (tx.accountId === account.id) bal += tx.kind === 'income' ? tx.amount : -tx.amount;
+    else if (tx.kind === 'transfer' && tx.toAccountId === account.id) bal += tx.amount;
+  }
+  return bal;
+}
+
 export function totalBalance(accounts: Account[], balances: Record<string, number>, spendableOnly = false) {
   return accounts
     .filter((a) => !a.archived && (!spendableOnly || !a.excludeFromTotal))

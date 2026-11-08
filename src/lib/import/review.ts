@@ -16,10 +16,17 @@ export interface ImportRow {
   flags: Flag[];
   /** Key of the matching row for a "spent for a friend → got it back" pair. */
   pairKey?: string;
+  /** Id of the already-saved operation this row duplicates. */
+  matchId?: string;
 }
 
-const sameDayAmount = (tx: Transaction, op: ParsedOp, accountId: string) =>
-  tx.date.slice(0, 10) === op.date && Math.abs(tx.amount - op.amount) < 0.01 && (tx.accountId === accountId || tx.toAccountId === accountId);
+/** Same day, same amount and same direction (money in vs out) on this account. */
+const sameOp = (tx: Transaction, op: ParsedOp, accountId: string) => {
+  if (tx.date.slice(0, 10) !== op.date || Math.abs(tx.amount - op.amount) >= 0.01) return false;
+  const outflow = tx.accountId === accountId && tx.kind !== 'income';
+  const inflow = (tx.accountId === accountId && tx.kind === 'income') || (tx.kind === 'transfer' && tx.toAccountId === accountId);
+  return op.sign > 0 ? inflow : outflow;
+};
 
 export function buildRows(
   ops: ParsedOp[],
@@ -27,6 +34,8 @@ export function buildRows(
 ): ImportRow[] {
   const ruleMap = new Map(opts.rules.map((r) => [r.id, r]));
   const catIds = new Set(opts.categories.map((c) => c.id));
+  // Each saved operation can match only one statement row (two coffees for 900 ₸ on one day are two operations).
+  const taken = new Set<string>();
   const rows: ImportRow[] = ops.map((op) => {
     const flags: Flag[] = [];
     let kind: TransactionKind = op.sign > 0 ? 'income' : 'expense';
@@ -38,7 +47,6 @@ export function buildRows(
     if (!g.confident && kind !== 'transfer') flags.push('unsure');
     if (g.ignore) flags.push('ignored');
     if (isOwnTransfer(op.details)) flags.push('own');
-    if (opts.existing.some((tx) => sameDayAmount(tx, op, opts.accountId))) flags.push('duplicate');
     return { op, kind, categoryId: kind === 'transfer' ? undefined : categoryId, checked: true, flags };
   });
 
@@ -59,6 +67,16 @@ export function buildRows(
       rows[i].pairKey = rows[j].op.key; rows[j].pairKey = rows[i].op.key;
     }
   });
+
+  // Already-saved operations: match regular rows first, so a skipped "paid back" pair
+  // never takes the match of a real operation with the same amount on the same day.
+  for (const pass of [false, true]) {
+    for (const r of rows) {
+      if (r.flags.includes('refund') !== pass) continue;
+      const match = opts.existing.find((tx) => !taken.has(tx.id) && sameOp(tx, r.op, opts.accountId));
+      if (match) { taken.add(match.id); r.flags.push('duplicate'); r.matchId = match.id; }
+    }
+  }
 
   for (const r of rows) {
     if (r.flags.some((f) => f === 'duplicate' || f === 'refund' || f === 'own' || f === 'ignored')) r.checked = false;
