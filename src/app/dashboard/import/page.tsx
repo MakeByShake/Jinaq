@@ -190,6 +190,7 @@ export default function ImportPage() {
   const [catRow, setCatRow] = useState<string | null>(null);
   const [newRules, setNewRules] = useState<Map<string, MerchantRule>>(new Map());
   const [done, setDone] = useState<{ importId: string; count: number; fixed?: number; before?: Account } | null>(null);
+  const [period, setPeriod] = useState<{ from: string; to: string } | undefined>();
   const [closing, setClosing] = useState<{ date: string; amount: number } | undefined>();
   const [fixBalance, setFixBalance] = useState(true);
   const fmt = useMoney();
@@ -210,7 +211,9 @@ export default function ImportPage() {
       const acc = defaultAccount?.id;
       if (!acc) { toast.error(t('imp.noAccount')); return; }
       setAccountId(acc);
-      setRange(st.period ?? { from: st.ops[st.ops.length - 1].date, to: st.ops[0].date });
+      const period = st.period ?? { from: st.ops[st.ops.length - 1].date, to: st.ops[0].date };
+      setPeriod(period);
+      setRange(rangeAfterLastImport(period, acc));
       setClosing(st.closing);
       setFixBalance(true);
       setRows(buildRows(st.ops, { accountId: acc, cashAccountId: cash?.id, existing: transactions, rules: rulesList, categories }));
@@ -224,10 +227,23 @@ export default function ImportPage() {
     }
   }
 
+  /** Last day already loaded from a statement into this account. */
+  const lastImported = (acc: string) => transactions
+    .filter((tx) => tx.importId && (tx.accountId === acc || tx.toAccountId === acc))
+    .reduce<string | undefined>((m, tx) => (!m || tx.date > m ? tx.date.slice(0, 10) : m), undefined);
+
+  // A new statement usually overlaps the previous one: start from the last loaded day
+  // (same-day operations are matched as duplicates), older days stay untouched.
+  const rangeAfterLastImport = (p: { from: string; to: string }, acc: string) => {
+    const last = lastImported(acc);
+    return last && last > p.from && last <= p.to ? { from: last, to: p.to } : p;
+  };
+
   // Re-check duplicates when the target account changes.
   const changeAccount = (id: string | undefined) => {
     if (!id || !rows) return;
     setAccountId(id);
+    if (period) setRange(rangeAfterLastImport(period, id));
     const fresh = buildRows(rows.map((r) => r.op), { accountId: id, cashAccountId: cash?.id, existing: transactions, rules: rulesList, categories });
     setRows(rows.map((r, i) => ({ ...r, flags: fresh[i].flags, matchId: fresh[i].matchId })));
   };
@@ -406,6 +422,9 @@ export default function ImportPage() {
                 <Input type="date" value={range.to} onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))} className="h-11 w-full min-w-0 appearance-none rounded-xl" />
               </label>
             </div>
+            {period && range.from > period.from && (
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{t('imp.newOnly', { date: fmtDate(range.from, 'd MMMM') })}</p>
+            )}
           </Panel>
           <Panel title={t('imp.intoAccount')}>
             <AccountPicker value={accountId} onChange={changeAccount} />
